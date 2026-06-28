@@ -78,6 +78,14 @@
   .step{display:flex;align-items:flex-start;gap:9px;padding:5px 0;font-size:14px}
   .step input[type=checkbox]{width:18px;height:18px;flex:0 0 auto;margin-top:1px;accent-color:var(--navy)}
   .step.done span{text-decoration:line-through;color:var(--muted)}
+  .step span{flex:1;cursor:pointer}
+  .step-exp{flex:0 0 auto;background:var(--accent-bg);border:none;color:var(--navy);
+    width:24px;height:24px;border-radius:6px;cursor:pointer;font-size:14px;line-height:1}
+  .step-detail{padding:8px 0 12px 27px}
+  .step-detail textarea{min-height:52px;font-size:13px;margin-bottom:8px;resize:vertical}
+  .sd-row{display:flex;gap:8px;align-items:center}
+  .sd-row input[type=date]{flex:1;font-size:13px;padding:8px 10px}
+  .sd-row .btn{flex:0 0 auto}
 
   /* Goal hierarchy */
   .goal{background:var(--card);border-radius:12px;border:1px solid var(--line);margin-bottom:12px;overflow:hidden}
@@ -208,6 +216,8 @@ async function initApp(){
   const {data:{user}}=await sb.auth.getUser();
   if(!user){return}
   ME=user;
+  // profile ensure karo (trigger ki jagah app khud banata hai)
+  await sb.from('plan_profiles').upsert({id:user.id,full_name:user.email},{onConflict:'id'});
   document.getElementById('login').classList.add('hide');
   document.getElementById('app').classList.remove('hide');
   document.getElementById('whoami').textContent=user.email;
@@ -390,10 +400,31 @@ async function toggleGoal(goalId){
   const tIds=tasks.map(t=>t.id);
   const {data:steps}=await sb.from('plan_steps').select('*').in('task_id',tIds).order('sort_order');
   box.innerHTML='<div class="steps">'+steps.map(s=>`
-    <label class="step ${s.is_done?'done':''}">
-      <input type="checkbox" ${s.is_done?'checked':''} onchange="toggleStep('${s.id}','${goalId}',this.checked)">
-      <span>${esc(s.title)}</span>
-    </label>`).join('')+'</div>';
+    <div class="step-wrap">
+      <label class="step ${s.is_done?'done':''}">
+        <input type="checkbox" ${s.is_done?'checked':''} onchange="toggleStep('${s.id}','${goalId}',this.checked)">
+        <span onclick="event.preventDefault();toggleStepDetail('${s.id}')">${esc(s.title)}</span>
+        <button class="step-exp" onclick="event.preventDefault();toggleStepDetail('${s.id}')" title="Details">${s.notes?'📝':'＋'}</button>
+      </label>
+      <div id="sd-${s.id}" class="step-detail hide">
+        <textarea id="note-${s.id}" placeholder="Details / notes likho... (kya hua, kya pending)">${esc(s.notes||'')}</textarea>
+        <div class="sd-row">
+          <input type="date" id="due-${s.id}" value="${s.due_date||''}">
+          <button class="btn sm" onclick="saveStep('${s.id}','${goalId}')">Save</button>
+        </div>
+      </div>
+    </div>`).join('')+'</div>';
+}
+
+async function toggleStepDetail(stepId){
+  document.getElementById('sd-'+stepId).classList.toggle('hide');
+}
+
+async function saveStep(stepId,goalId){
+  const notes=document.getElementById('note-'+stepId).value;
+  const due=document.getElementById('due-'+stepId).value||null;
+  await sb.from('plan_steps').update({notes,due_date:due}).eq('id',stepId);
+  toast('Step save ho gaya 📝');
 }
 
 async function toggleStep(stepId,goalId,checked){
