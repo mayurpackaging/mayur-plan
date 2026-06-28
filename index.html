@@ -151,6 +151,30 @@
     background:var(--surface-2,#f4f6f9);border:1px solid var(--line);border-radius:9px;padding:9px 11px;margin-bottom:7px}
   .ai-tac span{font-size:13px;flex:1}
   .ai-tac .btn{flex:0 0 auto}
+
+  /* Daily Log */
+  .date-nav{display:flex;align-items:center;justify-content:space-between;background:var(--card);
+    border:1px solid var(--line);border-radius:10px;padding:8px 12px;margin-bottom:14px;font-size:14px}
+  .date-nav button{background:var(--accent-bg);border:none;color:var(--navy);padding:6px 12px;
+    border-radius:7px;font-size:13px;cursor:pointer}
+  .date-nav button:disabled{opacity:.4;cursor:default}
+  .date-nav span{font-weight:600}
+  .score-card{display:flex;gap:14px;align-items:center;background:var(--navy);color:#fff;
+    border-radius:14px;padding:16px 18px;margin-bottom:14px}
+  .score-num{font-size:34px;font-weight:700;line-height:1;flex:0 0 auto}
+  .score-num span{font-size:16px;opacity:.7}
+  .score-lbl{font-size:13px;opacity:.9;margin-bottom:7px}
+  .score-cats{display:flex;flex-wrap:wrap;gap:5px}
+  .sc-chip{font-size:11px;padding:2px 9px;border-radius:20px;font-weight:600}
+  .dlog{display:flex;gap:11px;align-items:flex-start;background:var(--card);border:1px solid var(--line);
+    border-radius:12px;padding:12px 13px;margin-bottom:9px}
+  .dlog-cat{flex:0 0 auto;width:34px;height:34px;border-radius:9px;display:flex;align-items:center;
+    justify-content:center;font-size:17px}
+  .dlog-body{flex:1;min-width:0}
+  .dlog-txt{font-size:14px;line-height:1.4}
+  .dlog-meta{font-size:12px;color:var(--muted);margin-top:3px}
+  .dlog-del{flex:0 0 auto;background:none;border:none;color:#cbd2db;font-size:15px;cursor:pointer;padding:2px 4px}
+  .dlog-del:hover{color:var(--red)}
   .btn.green{background:var(--green)}
 
   /* Goal hierarchy */
@@ -246,7 +270,8 @@
 
     <!-- Tabs -->
     <div class="tabs">
-      <div class="tab on" data-tab="today" onclick="switchTab('today')">☀️ Aaj</div>
+      <div class="tab on" data-tab="daily" onclick="switchTab('daily')">📓 Daily</div>
+      <div class="tab" data-tab="today" onclick="switchTab('today')">☀️ Aaj</div>
       <div class="tab" data-tab="dash" onclick="switchTab('dash')">📊 Dashboard</div>
       <div class="tab" data-tab="w12" onclick="switchTab('w12')">📅 12-Week</div>
       <div class="tab" data-tab="inbox" onclick="switchTab('inbox')">📥 Inbox</div>
@@ -254,7 +279,8 @@
       <div class="tab" data-tab="parked" onclick="switchTab('parked')">⏸ Parked</div>
     </div>
 
-    <div id="view-today"></div>
+    <div id="view-daily"></div>
+    <div id="view-today" class="hide"></div>
     <div id="view-dash" class="hide"></div>
     <div id="view-w12" class="hide"></div>
     <div id="view-inbox" class="hide"></div>
@@ -313,15 +339,16 @@ async function initApp(){
   document.getElementById('login').classList.add('hide');
   document.getElementById('app').classList.remove('hide');
   document.getElementById('whoami').textContent=user.email;
-  loadToday();loadInbox();loadGoals();loadParked();
+  loadDaily();loadToday();loadGoals();loadParked();
 }
 
 // ====== TABS ======
 function switchTab(t){
   document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x.dataset.tab===t));
-  ['today','dash','w12','inbox','goals','parked'].forEach(v=>{
+  ['daily','today','dash','w12','inbox','goals','parked'].forEach(v=>{
     document.getElementById('view-'+v).classList.toggle('hide',v!==t);
   });
+  if(t==='daily')loadDaily();
   if(t==='today')loadToday();
   if(t==='dash')loadDash();
   if(t==='w12')loadW12();
@@ -892,6 +919,139 @@ async function loadParked(){
         <button class="btn gray sm" onclick="dropCapture('${c.id}')">✕ Drop</button>
       </div>
     </div>`).join('');
+}
+
+// ====== DAILY LOG (voice + AI category) ======
+const CATS={
+  'Sales':{e:'📞',c:'#2563eb'},'Order':{e:'📦',c:'#157347'},'Accounts':{e:'💰',c:'#9a6700'},
+  'Development':{e:'💻',c:'#7c3aed'},'Expansion':{e:'🏭',c:'#b42318'},
+  'Operations':{e:'⚙️',c:'#0e7490'},'Other':{e:'📝',c:'#6b7686'}
+};
+// score weights (sales/order/expansion = bigger value moves)
+const CAT_WEIGHT={'Sales':2,'Order':3,'Expansion':3,'Accounts':1.5,'Development':2,'Operations':1.5,'Other':1};
+
+let DAILY_VIEW_DATE=null;
+function loadDaily(){DAILY_VIEW_DATE=todayStr();renderDaily()}
+
+async function renderDaily(){
+  const root=document.getElementById('view-daily');
+  const d=DAILY_VIEW_DATE||todayStr();
+  const isToday=d===todayStr();
+
+  // log input box (sirf aaj ke liye)
+  let html='';
+  if(isToday){
+    html+=`<div class="capture">
+      <h3>📓 Aaj kya kiya? — bolo ya likho</h3>
+      <textarea id="dailyText" placeholder="jaise: Domino's se 500 container ka order enquiry aaya, kal quote bhejna hai"></textarea>
+      <div class="cap-row">
+        <button class="mic" id="dMicBtn" onclick="toggleDailyMic()" title="Bolke likho">🎤</button>
+        <button class="btn" id="dLogBtn" onclick="addDaily()">Log karo</button>
+      </div>
+    </div>`;
+  }
+
+  // date nav
+  html+=`<div class="date-nav">
+    <button onclick="shiftDaily(-1)">‹ Pichla</button>
+    <span>${new Date(d).toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'short'})}${isToday?' (Aaj)':''}</span>
+    <button onclick="shiftDaily(1)" ${isToday?'disabled':''}>Agla ›</button>
+  </div>`;
+
+  root.innerHTML=html+'<div id="dailyList"><div class="empty">Loading...</div></div>';
+
+  const {data:logs,error}=await sb.from('plan_daily').select('*')
+    .eq('owner_id',ME.id).eq('log_date',d).order('created_at',{ascending:false});
+  const listEl=document.getElementById('dailyList');
+  if(error){listEl.innerHTML='<div class="empty">Error: '+esc(error.message)+'</div>';return}
+
+  if(!logs||!logs.length){
+    listEl.innerHTML='<div class="empty">'+(isToday?'Aaj ka pehla kaam log karo 👆':'Is din koi log nahi')+'</div>';
+    return;
+  }
+
+  // working score
+  let score=0;const byCat={};
+  logs.forEach(l=>{
+    const w=CAT_WEIGHT[l.category]||1;score+=w;
+    byCat[l.category]=(byCat[l.category]||0)+1;
+  });
+  const scoreOut=Math.min(10,Math.round(score));
+
+  let s=`<div class="score-card">
+    <div class="score-num">${scoreOut}<span>/10</span></div>
+    <div class="score-body">
+      <div class="score-lbl">Working Score · ${logs.length} kaam</div>
+      <div class="score-cats">${Object.entries(byCat).map(([c,n])=>`<span class="sc-chip" style="background:${(CATS[c]||CATS.Other).c}22;color:${(CATS[c]||CATS.Other).c}">${(CATS[c]||CATS.Other).e} ${c} ${n}</span>`).join('')}</div>
+    </div>
+  </div>`;
+
+  s+=logs.map(l=>{
+    const cat=CATS[l.category]||CATS.Other;
+    const t=new Date(l.created_at).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+    return `<div class="dlog">
+      <div class="dlog-cat" style="background:${cat.c}">${cat.e}</div>
+      <div class="dlog-body">
+        <div class="dlog-txt">${esc(l.clean_text||l.raw_text)}</div>
+        <div class="dlog-meta">${esc(l.category||'Other')} · ${t}${l.who?' · '+esc(l.who):''}</div>
+      </div>
+      <button class="dlog-del" onclick="delDaily('${l.id}')" title="Delete">✕</button>
+    </div>`;
+  }).join('');
+
+  listEl.innerHTML=s;
+}
+
+function shiftDaily(dir){
+  const d=new Date(DAILY_VIEW_DATE);d.setDate(d.getDate()+dir);
+  const ns=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  if(ns>todayStr())return;
+  DAILY_VIEW_DATE=ns;renderDaily();
+}
+
+async function addDaily(){
+  const ta=document.getElementById('dailyText');
+  const text=ta.value.trim();
+  if(!text){toast('Kuch likho ya bolo');return}
+  const btn=document.getElementById('dLogBtn');
+  btn.innerHTML='<span class="spinner"></span>';btn.disabled=true;
+  let category='Other',clean=text;
+  try{
+    const r=await fetch('/api/ai-steps',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({idea:text,mode:'daily'})});
+    const j=await r.json();
+    if(j.category)category=j.category;
+    if(j.clean)clean=j.clean;
+  }catch(e){/* fallback: as-is */}
+  const {error}=await sb.from('plan_daily').insert({
+    owner_id:ME.id,raw_text:text,clean_text:clean,category,log_date:todayStr()
+  });
+  btn.innerHTML='Log karo';btn.disabled=false;
+  if(error){toast('Error: '+error.message);return}
+  ta.value='';toast('Log ho gaya 📓');renderDaily();
+}
+
+async function delDaily(id){
+  await sb.from('plan_daily').delete().eq('id',id);
+  toast('Delete');renderDaily();
+}
+
+// Daily voice mic
+let dRecog=null,dRecording=false;
+function toggleDailyMic(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){toast('Is browser me voice support nahi');return}
+  const btn=document.getElementById('dMicBtn');
+  if(dRecording){dRecog.stop();return}
+  dRecog=new SR();dRecog.lang='hi-IN';dRecog.continuous=true;dRecog.interimResults=true;
+  let base=document.getElementById('dailyText').value;
+  dRecog.onresult=e=>{
+    let txt='';for(let i=e.resultIndex;i<e.results.length;i++)txt+=e.results[i][0].transcript;
+    document.getElementById('dailyText').value=(base?base+' ':'')+txt;
+  };
+  dRecog.onend=()=>{dRecording=false;btn.classList.remove('rec');btn.textContent='🎤'};
+  dRecog.onerror=()=>{dRecording=false;btn.classList.remove('rec');btn.textContent='🎤'};
+  dRecog.start();dRecording=true;btn.classList.add('rec');btn.textContent='⏹';
 }
 
 // ====== MIC (voice capture) ======
