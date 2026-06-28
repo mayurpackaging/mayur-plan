@@ -1043,38 +1043,54 @@ async function delDaily(id){
 
 // Daily voice mic
 let dRecog=null,dRecording=false;
-function toggleDailyMic(){
-  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  if(!SR){toast('Is browser me voice support nahi');return}
-  const btn=document.getElementById('dMicBtn');
-  if(dRecording){dRecog.stop();return}
-  dRecog=new SR();dRecog.lang='hi-IN';dRecog.continuous=true;dRecog.interimResults=true;
-  let base=document.getElementById('dailyText').value;
-  dRecog.onresult=e=>{
-    let txt='';for(let i=e.resultIndex;i<e.results.length;i++)txt+=e.results[i][0].transcript;
-    document.getElementById('dailyText').value=(base?base+' ':'')+txt;
-  };
-  dRecog.onend=()=>{dRecording=false;btn.classList.remove('rec');btn.textContent='🎤'};
-  dRecog.onerror=()=>{dRecording=false;btn.classList.remove('rec');btn.textContent='🎤'};
-  dRecog.start();dRecording=true;btn.classList.add('rec');btn.textContent='⏹';
-}
+function toggleDailyMic(){ startVoice('dMicBtn','dailyText','d') }
 
 // ====== MIC (voice capture) ======
 let recog=null,recording=false;
-function toggleMic(){
+function toggleMic(){ startVoice('micBtn','capText','c') }
+
+// Shared phone-friendly voice function
+let VOICE={d:{rec:null,on:false},c:{rec:null,on:false}};
+function startVoice(btnId,textId,key){
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  if(!SR){toast('Is browser me voice support nahi');return}
-  const btn=document.getElementById('micBtn');
-  if(recording){recog.stop();return}
-  recog=new SR();recog.lang='hi-IN';recog.continuous=true;recog.interimResults=true;
-  let base=document.getElementById('capText').value;
-  recog.onresult=e=>{
-    let txt='';for(let i=e.resultIndex;i<e.results.length;i++)txt+=e.results[i][0].transcript;
-    document.getElementById('capText').value=(base?base+' ':'')+txt;
+  if(!SR){toast('Is phone/browser me voice support nahi. Type karke daalo.');return}
+  const btn=document.getElementById(btnId);
+  const v=VOICE[key];
+  // already recording? stop
+  if(v.on){try{v.rec.stop()}catch(e){}v.on=false;btn.classList.remove('rec');btn.textContent='🎤';return}
+
+  const rec=new SR();
+  rec.lang='hi-IN';
+  rec.continuous=false;        // phone pe zyada reliable
+  rec.interimResults=true;
+  rec.maxAlternatives=1;
+  v.rec=rec;
+  const ta=document.getElementById(textId);
+  let base=ta.value;
+
+  rec.onresult=e=>{
+    let txt='';
+    for(let i=0;i<e.results.length;i++)txt+=e.results[i][0].transcript;
+    ta.value=(base?base+' ':'')+txt;
   };
-  recog.onend=()=>{recording=false;btn.classList.remove('rec');btn.textContent='🎤'};
-  recog.onerror=()=>{recording=false;btn.classList.remove('rec');btn.textContent='🎤'};
-  recog.start();recording=true;btn.classList.add('rec');btn.textContent='⏹';
+  rec.onend=()=>{v.on=false;btn.classList.remove('rec');btn.textContent='🎤'};
+  rec.onerror=ev=>{
+    v.on=false;btn.classList.remove('rec');btn.textContent='🎤';
+    if(ev.error==='not-allowed'||ev.error==='service-not-allowed'){
+      toast('Mic permission do — settings me allow karo');
+    }else if(ev.error==='no-speech'){
+      toast('Kuch suna nahi — dobara bolo');
+    }else if(ev.error==='network'){
+      toast('Internet check karo (voice ke liye net chahiye)');
+    }else{
+      toast('Voice error: '+ev.error);
+    }
+  };
+  try{
+    rec.start();v.on=true;btn.classList.add('rec');btn.textContent='⏹';
+  }catch(e){
+    toast('Voice start nahi hua, dobara try karo');
+  }
 }
 
 // ====== BOOT ======
