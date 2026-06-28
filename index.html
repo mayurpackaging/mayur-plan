@@ -119,6 +119,26 @@
   .b-green{background:var(--green-bg);color:var(--green)}
   .b-amber{background:var(--amber-bg);color:var(--amber)}
   .b-red{background:var(--red-bg);color:var(--red)}
+  .b-gray{background:#eef1f5;color:var(--muted)}
+
+  /* Dashboard */
+  .metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:8px}
+  .metric{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:13px 8px;text-align:center}
+  .metric.m-red{border-color:var(--red);background:var(--red-bg)}
+  .m-num{font-size:24px;font-weight:700;color:var(--navy)}
+  .metric.m-red .m-num{color:var(--red)}
+  .m-lbl{font-size:11px;color:var(--muted);margin-top:2px}
+  .dash-goal{display:flex;gap:11px;align-items:center;background:var(--card);border:1px solid var(--line);
+    border-radius:12px;padding:13px 14px;margin-bottom:9px;cursor:pointer}
+  .dg-dot{flex:0 0 auto;width:12px;height:12px;border-radius:50%}
+  .dg-dot.b-green{background:var(--green)} .dg-dot.b-amber{background:var(--amber)}
+  .dg-dot.b-red{background:var(--red)} .dg-dot.b-gray{background:#cbd2db}
+  .dg-body{flex:1;min-width:0}
+  .dg-title{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .dg-meta{font-size:12px;color:var(--muted);margin-top:1px}
+  .dg-right{flex:0 0 auto;text-align:right}
+  .dg-pct{font-size:13px;font-weight:600;color:var(--navy);margin-top:4px}
+  @media(max-width:420px){.metrics{grid-template-columns:repeat(2,1fr)}}
 
   /* Modal */
   .modal-bg{position:fixed;inset:0;background:rgba(20,30,45,.45);display:flex;align-items:center;
@@ -180,12 +200,14 @@
     <!-- Tabs -->
     <div class="tabs">
       <div class="tab on" data-tab="today" onclick="switchTab('today')">☀️ Aaj</div>
+      <div class="tab" data-tab="dash" onclick="switchTab('dash')">📊 Dashboard</div>
       <div class="tab" data-tab="inbox" onclick="switchTab('inbox')">📥 Inbox</div>
       <div class="tab" data-tab="goals" onclick="switchTab('goals')">🎯 Goals</div>
       <div class="tab" data-tab="parked" onclick="switchTab('parked')">⏸ Parked</div>
     </div>
 
     <div id="view-today"></div>
+    <div id="view-dash" class="hide"></div>
     <div id="view-inbox" class="hide"></div>
     <div id="view-goals" class="hide"></div>
     <div id="view-parked" class="hide"></div>
@@ -248,10 +270,11 @@ async function initApp(){
 // ====== TABS ======
 function switchTab(t){
   document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x.dataset.tab===t));
-  ['today','inbox','goals','parked'].forEach(v=>{
+  ['today','dash','inbox','goals','parked'].forEach(v=>{
     document.getElementById('view-'+v).classList.toggle('hide',v!==t);
   });
   if(t==='today')loadToday();
+  if(t==='dash')loadDash();
 }
 
 // ====== CAPTURE ======
@@ -530,6 +553,66 @@ async function loadToday(){
 async function doneToday(stepId){
   await sb.from('plan_steps').update({is_done:true}).eq('id',stepId);
   toast('Ho gaya ✓');loadToday();loadGoals();
+}
+
+// ====== DASHBOARD (RAG) ======
+async function loadDash(){
+  const root=document.getElementById('view-dash');
+  root.innerHTML='<div class="empty">Loading...</div>';
+  const today=todayStr();
+
+  const {data:goals}=await sb.from('plan_goals').select('*').eq('status','active');
+  const {data:allSteps}=await sb.from('plan_steps').select('is_done,due_date,pinned_today,scheduled_date');
+
+  const totalGoals=(goals||[]).length;
+  const steps=allSteps||[];
+  const totalSteps=steps.length;
+  const doneSteps=steps.filter(s=>s.is_done).length;
+  const overallPct=totalSteps?Math.round(doneSteps/totalSteps*100):0;
+  const todayCount=steps.filter(s=>!s.is_done&&(s.pinned_today||s.scheduled_date===today||s.due_date===today)).length;
+  const overdue=steps.filter(s=>!s.is_done&&s.due_date&&s.due_date<today).length;
+
+  let html=`<div class="sec-title">📊 Ek nazar me</div>
+    <div class="metrics">
+      <div class="metric"><div class="m-num">${totalGoals}</div><div class="m-lbl">Active goals</div></div>
+      <div class="metric"><div class="m-num">${overallPct}%</div><div class="m-lbl">Overall progress</div></div>
+      <div class="metric"><div class="m-num">${todayCount}</div><div class="m-lbl">Aaj ke kaam</div></div>
+      <div class="metric ${overdue?'m-red':''}"><div class="m-num">${overdue}</div><div class="m-lbl">Overdue</div></div>
+    </div>`;
+
+  if(!totalGoals){
+    html+='<div class="empty">Abhi koi active goal nahi. Inbox se kuch Execute karo 🎯</div>';
+    root.innerHTML=html;return;
+  }
+
+  // per goal RAG
+  const rows=[];
+  for(const g of goals){
+    const prog=await goalProgress(g.id);
+    let rag,ragTxt;
+    if(prog.total===0){rag='b-gray';ragTxt='No steps'}
+    else if(prog.pct>=70){rag='b-green';ragTxt='On track'}
+    else if(prog.pct>=30){rag='b-amber';ragTxt='Dhyaan do'}
+    else {rag='b-red';ragTxt='Peeche'}
+    rows.push({g,prog,rag,ragTxt});
+  }
+  // sort: red first (jo phans raha hai upar)
+  const order={'b-red':0,'b-amber':1,'b-gray':2,'b-green':3};
+  rows.sort((a,b)=>order[a.rag]-order[b.rag]);
+
+  html+='<div class="sec-title" style="margin-top:18px">🚦 Goals status (jo phans raha hai upar)</div>';
+  html+=rows.map(r=>`
+    <div class="dash-goal" onclick="switchTab('goals')">
+      <div class="dg-dot ${r.rag}"></div>
+      <div class="dg-body">
+        <div class="dg-title">${esc(r.g.title)}</div>
+        <div class="dg-meta">${esc(r.g.category||'')} · ${r.prog.done}/${r.prog.total} steps</div>
+        <div class="bar" style="margin-top:6px"><i style="width:${r.prog.pct}%"></i></div>
+      </div>
+      <div class="dg-right"><span class="badge ${r.rag}">${r.ragTxt}</span><div class="dg-pct">${r.prog.pct}%</div></div>
+    </div>`).join('');
+
+  root.innerHTML=html;
 }
 
 // ====== PARKED ======
