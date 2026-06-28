@@ -2,8 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Mayur Plan — Plan to Progress</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#1F4E79">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Mayur Plan">
+<link rel="apple-touch-icon" href="/icon-192.png">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root{
@@ -256,7 +262,6 @@
     </div>
     <button class="logout" onclick="doLogout()">Logout</button>
   </header>
-
   <div class="wrap">
     <!-- Capture -->
     <div class="capture">
@@ -1074,6 +1079,10 @@ function toggleMic(){
 
 // ====== BOOT ======
 (async()=>{
+  // PWA service worker
+  if('serviceWorker' in navigator){
+    try{await navigator.serviceWorker.register('/sw.js')}catch(e){}
+  }
   const {data:{session}}=await sb.auth.getSession();
   if(session)initApp();
 })();
