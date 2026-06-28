@@ -817,6 +817,9 @@ async function toggleWeek(tacticId,week,wasDone){
   }
   loadW12();
 }
+
+// ====== PARKED ======
+async function loadParked(){
   const {data,error}=await sb.from('plan_captures').select('*')
     .eq('owner_id',ME.id).eq('status','parked').order('created_at',{ascending:false});
   const root=document.getElementById('view-parked');
