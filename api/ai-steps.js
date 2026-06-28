@@ -1,22 +1,42 @@
-// Vercel Serverless Function — AI auto-steps
+// Vercel Serverless Function — AI auto-steps & tactics
 // Anthropic API key yahan SERVER pe rehti hai (browser me nahi) = safe
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'POST only' });
   }
-  const { idea } = req.body || {};
+  const { idea, mode } = req.body || {};
   if (!idea) return res.status(400).json({ error: 'idea missing' });
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return res.status(500).json({ error: 'API key set nahi hai Vercel me' });
 
-  const prompt = `Tum ek business execution assistant ho. Niche ek idea/kaam diya hai (Hinglish me ho sakta hai). Iske liye 4-7 saaf, actionable steps banao jo is kaam ko complete karne ke liye karne padenge. Har step chhota aur clear ho. Sirf steps do, ek JSON array of strings me, aur kuch nahi (no markdown, no preamble).
+  let prompt;
+  if (mode === 'tactics') {
+    // 12-Week Year ke hisaab se weekly lead-indicator tactics
+    prompt = `Tum ek business coach ho jo "12 Week Year" framework jaanta hai. Niche ek 12-week goal diya hai (Hinglish me ho sakta hai). Iske liye 4-6 TACTICS banao.
+
+TACTIC kya hota hai: weekly repeat hone wala kaam jo aap CONTROL karte ho (lead indicator). Result nahi, ACTIVITY. Har tactic me ek number/frequency ho jab possible ho.
+
+Achhe tactics ke example:
+- "10 dealer ko har week call karo"
+- "2 SEO blog post weekly publish karo"
+- "Har Monday IMS data accuracy check karo"
+
+Bure tactics (mat banao): "leads badhao" (ye result hai, activity nahi).
+
+Goal: "${idea}"
+
+Sirf is format me jawab do, kuch aur nahi (no markdown):
+["tactic 1","tactic 2","tactic 3"]`;
+  } else {
+    prompt = `Tum ek business execution assistant ho. Niche ek idea/kaam diya hai (Hinglish me ho sakta hai). Iske liye 4-7 saaf, actionable steps banao jo is kaam ko complete karne ke liye karne padenge. Har step chhota aur clear ho. Sirf steps do, ek JSON array of strings me, aur kuch nahi (no markdown, no preamble).
 
 Idea: "${idea}"
 
 Sirf is format me jawab do:
 ["step 1","step 2","step 3"]`;
+  }
 
   try {
     const r = await fetch('https://api.anthropic.com/v1/messages', {
@@ -39,7 +59,6 @@ Sirf is format me jawab do:
     text = text.replace(/```json/g, '').replace(/```/g, '').trim();
     let steps = [];
     try { steps = JSON.parse(text); } catch (e) {
-      // fallback: split lines
       steps = text.split('\n').map(s => s.replace(/^[-*\d.)\s]+/, '').trim()).filter(Boolean);
     }
     return res.status(200).json({ steps });
