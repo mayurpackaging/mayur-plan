@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mayur Plan — Plan to Progress</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{
+    --navy:#1F4E79; --navy-d:#163a5c; --bg:#f4f6f9; --card:#ffffff;
+    --line:#e3e8ef; --txt:#1f2733; --muted:#6b7686; --green:#157347;
+    --green-bg:#e6f4ec; --amber:#9a6700; --amber-bg:#fff4d6; --red:#b42318;
+    --red-bg:#fdeceb; --accent:#1F4E79; --accent-bg:#e8eff6;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+    background:var(--bg);color:var(--txt);line-height:1.5;-webkit-tap-highlight-color:transparent}
+  .hide{display:none!important}
+
+  /* Login */
+  #login{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+  .login-card{background:var(--card);border-radius:16px;padding:32px 26px;max-width:380px;width:100%;
+    box-shadow:0 4px 24px rgba(31,78,121,.10)}
+  .login-card h1{color:var(--navy);font-size:22px;margin-bottom:4px}
+  .login-card p.sub{color:var(--muted);font-size:14px;margin-bottom:22px}
+  .field{margin-bottom:14px}
+  .field label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
+  input,textarea,select{width:100%;padding:11px 13px;border:1px solid var(--line);border-radius:10px;
+    font-size:15px;font-family:inherit;background:#fff;color:var(--txt)}
+  input:focus,textarea:focus,select:focus{outline:none;border-color:var(--navy)}
+  .btn{background:var(--navy);color:#fff;border:none;padding:12px 18px;border-radius:10px;
+    font-size:15px;font-weight:600;cursor:pointer;width:100%;transition:.15s}
+  .btn:hover{background:var(--navy-d)}
+  .btn:active{transform:scale(.98)}
+  .btn.sm{width:auto;padding:8px 14px;font-size:13px}
+  .btn.ghost{background:transparent;color:var(--navy);border:1px solid var(--navy)}
+  .btn.green{background:var(--green)} .btn.amber{background:var(--amber)} .btn.gray{background:#6b7686}
+  .err{color:var(--red);font-size:13px;margin-top:10px;min-height:16px}
+
+  /* App shell */
+  #app{max-width:760px;margin:0 auto;padding:0 0 90px}
+  header.topbar{background:var(--navy);color:#fff;padding:14px 18px;display:flex;
+    align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
+  header.topbar h2{font-size:17px;font-weight:600}
+  header.topbar .who{font-size:12px;opacity:.85}
+  .logout{background:rgba(255,255,255,.15);border:none;color:#fff;padding:6px 12px;
+    border-radius:8px;font-size:12px;cursor:pointer}
+  .wrap{padding:16px 16px 0}
+
+  /* Capture box */
+  .capture{background:var(--card);border-radius:14px;padding:16px;border:1px solid var(--line);margin-bottom:16px}
+  .capture h3{font-size:14px;color:var(--navy);margin-bottom:10px;display:flex;align-items:center;gap:7px}
+  .capture textarea{min-height:64px;resize:vertical;margin-bottom:10px}
+  .cap-row{display:flex;gap:8px}
+  .cap-row .btn{flex:1}
+  .mic{flex:0 0 auto;width:46px;padding:0;background:var(--accent-bg);color:var(--navy);
+    border:1px solid var(--line);font-size:18px}
+  .mic.rec{background:var(--red);color:#fff;animation:pulse 1s infinite}
+  @keyframes pulse{50%{opacity:.6}}
+
+  /* Tabs */
+  .tabs{display:flex;gap:6px;margin-bottom:16px;overflow-x:auto;padding-bottom:2px}
+  .tab{flex:0 0 auto;padding:8px 15px;border-radius:20px;background:var(--card);border:1px solid var(--line);
+    font-size:13px;cursor:pointer;color:var(--muted);white-space:nowrap}
+  .tab.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+
+  /* Cards */
+  .sec-title{font-size:13px;color:var(--muted);margin:4px 2px 10px;text-transform:uppercase;letter-spacing:.4px}
+  .item{background:var(--card);border-radius:12px;padding:13px 15px;border:1px solid var(--line);margin-bottom:10px}
+  .item .txt{font-size:15px;margin-bottom:4px}
+  .item .meta{font-size:12px;color:var(--muted)}
+  .gate{display:flex;gap:7px;margin-top:11px}
+  .gate .btn{flex:1;padding:9px;font-size:13px}
+  .empty{text-align:center;color:var(--muted);padding:36px 16px;font-size:14px}
+
+  /* Steps */
+  .steps{margin-top:10px;border-top:1px dashed var(--line);padding-top:10px}
+  .step{display:flex;align-items:flex-start;gap:9px;padding:5px 0;font-size:14px}
+  .step input[type=checkbox]{width:18px;height:18px;flex:0 0 auto;margin-top:1px;accent-color:var(--navy)}
+  .step.done span{text-decoration:line-through;color:var(--muted)}
+
+  /* Goal hierarchy */
+  .goal{background:var(--card);border-radius:12px;border:1px solid var(--line);margin-bottom:12px;overflow:hidden}
+  .goal-head{padding:14px 15px;cursor:pointer}
+  .goal-head .gt{font-size:15px;font-weight:600;display:flex;justify-content:space-between;gap:10px}
+  .pct{font-size:13px;color:var(--navy);font-weight:600;flex:0 0 auto}
+  .bar{height:7px;background:#eef1f5;border-radius:6px;margin-top:9px;overflow:hidden}
+  .bar > i{display:block;height:100%;background:var(--navy);border-radius:6px;transition:width .4s}
+  .goal-cat{display:inline-block;font-size:11px;padding:2px 9px;border-radius:20px;
+    background:var(--accent-bg);color:var(--navy);margin-top:8px}
+  .badge{display:inline-block;font-size:11px;padding:2px 8px;border-radius:6px;font-weight:600}
+  .b-green{background:var(--green-bg);color:var(--green)}
+  .b-amber{background:var(--amber-bg);color:var(--amber)}
+  .b-red{background:var(--red-bg);color:var(--red)}
+
+  /* Modal */
+  .modal-bg{position:fixed;inset:0;background:rgba(20,30,45,.45);display:flex;align-items:center;
+    justify-content:center;padding:18px;z-index:100}
+  .modal{background:#fff;border-radius:16px;padding:22px;max-width:440px;width:100%;max-height:88vh;overflow:auto}
+  .modal h3{color:var(--navy);font-size:17px;margin-bottom:14px}
+  .modal .field{margin-bottom:12px}
+  .modal-actions{display:flex;gap:8px;margin-top:8px}
+  .modal-actions .btn{flex:1}
+  .spinner{display:inline-block;width:15px;height:15px;border:2px solid #fff;border-top-color:transparent;
+    border-radius:50%;animation:spin .7s linear infinite;vertical-align:-2px;margin-right:6px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--navy);
+    color:#fff;padding:11px 20px;border-radius:10px;font-size:14px;z-index:200;box-shadow:0 4px 16px rgba(0,0,0,.2)}
+</style>
+</head>
+<body>
+
+<!-- ===== LOGIN ===== -->
+<div id="login">
+  <div class="login-card">
+    <h1>Mayur Plan</h1>
+    <p class="sub">Plan to Progress — aapka personal cockpit</p>
+    <div class="field">
+      <label>Email</label>
+      <input id="email" type="email" placeholder="aapka@email.com" autocomplete="username">
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <input id="pass" type="password" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <button class="btn" id="loginBtn" onclick="doLogin()">Login</button>
+    <button class="btn ghost" style="margin-top:8px" onclick="doSignup()">Naya account banao</button>
+    <div class="err" id="loginErr"></div>
+  </div>
+</div>
+
+<!-- ===== APP ===== -->
+<div id="app" class="hide">
+  <header class="topbar">
+    <div>
+      <h2>Mayur Plan</h2>
+      <div class="who" id="whoami"></div>
+    </div>
+    <button class="logout" onclick="doLogout()">Logout</button>
+  </header>
+
+  <div class="wrap">
+    <!-- Capture -->
+    <div class="capture">
+      <h3>💡 Quick Capture — kuch bhi dimag me aaye</h3>
+      <textarea id="capText" placeholder="Jaise: Hyderabad exhibition ka call aaya, participate karna hai kya?"></textarea>
+      <div class="cap-row">
+        <button class="mic" id="micBtn" onclick="toggleMic()" title="Bolke likho">🎤</button>
+        <button class="btn" onclick="addCapture()">Capture karo</button>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <div class="tab on" data-tab="inbox" onclick="switchTab('inbox')">📥 Inbox</div>
+      <div class="tab" data-tab="goals" onclick="switchTab('goals')">🎯 Goals</div>
+      <div class="tab" data-tab="parked" onclick="switchTab('parked')">⏸ Parked</div>
+    </div>
+
+    <div id="view-inbox"></div>
+    <div id="view-goals" class="hide"></div>
+    <div id="view-parked" class="hide"></div>
+  </div>
+</div>
+
+<div id="modalRoot"></div>
+<div id="toastRoot"></div>
+
+<script>
+// ====== CONFIG ======
+const SUPABASE_URL = "https://wqstclmbzsskqopkbndi.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indxc3RjbG1ienNza3FvcGtibmRpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY1NjI1MzQsImV4cCI6MjA5MjEzODUzNH0.xyKjmazLr4y9ISxIVB79QwEFgimDh09VThveb1CL3E0";
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+let ME = null;
+
+// ====== HELPERS ======
+function toast(msg){
+  const t=document.createElement('div');t.className='toast';t.textContent=msg;
+  document.getElementById('toastRoot').appendChild(t);
+  setTimeout(()=>t.remove(),2200);
+}
+function esc(s){return (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+function closeModal(){document.getElementById('modalRoot').innerHTML=''}
+
+// ====== AUTH ======
+async function doLogin(){
+  const email=document.getElementById('email').value.trim();
+  const pass=document.getElementById('pass').value;
+  const err=document.getElementById('loginErr');err.textContent='';
+  if(!email||!pass){err.textContent='Email aur password dono daalo';return}
+  const {error}=await sb.auth.signInWithPassword({email,password:pass});
+  if(error){err.textContent=error.message;return}
+  initApp();
+}
+async function doSignup(){
+  const email=document.getElementById('email').value.trim();
+  const pass=document.getElementById('pass').value;
+  const err=document.getElementById('loginErr');err.textContent='';
+  if(!email||!pass){err.textContent='Email aur password dono daalo';return}
+  if(pass.length<6){err.textContent='Password kam se kam 6 character ka ho';return}
+  const {error}=await sb.auth.signUp({email,password:pass});
+  if(error){err.textContent=error.message;return}
+  err.style.color='green';err.textContent='Account ban gaya! Ab Login dabao.';
+}
+async function doLogout(){await sb.auth.signOut();location.reload()}
+
+async function initApp(){
+  const {data:{user}}=await sb.auth.getUser();
+  if(!user){return}
+  ME=user;
+  document.getElementById('login').classList.add('hide');
+  document.getElementById('app').classList.remove('hide');
+  document.getElementById('whoami').textContent=user.email;
+  loadInbox();loadGoals();loadParked();
+}
+
+// ====== TABS ======
+function switchTab(t){
+  document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x.dataset.tab===t));
+  ['inbox','goals','parked'].forEach(v=>{
+    document.getElementById('view-'+v).classList.toggle('hide',v!==t);
+  });
+}
+
+// ====== CAPTURE ======
+async function addCapture(){
+  const ta=document.getElementById('capText');
+  const text=ta.value.trim();
+  if(!text){toast('Kuch likho pehle');return}
+  const {error}=await sb.from('plan_captures').insert({owner_id:ME.id,raw_text:text,status:'inbox'});
+  if(error){toast('Error: '+error.message);return}
+  ta.value='';toast('Capture ho gaya 📥');loadInbox();
+}
+
+async function loadInbox(){
+  const {data,error}=await sb.from('plan_captures').select('*')
+    .eq('owner_id',ME.id).eq('status','inbox').order('created_at',{ascending:false});
+  const root=document.getElementById('view-inbox');
+  if(error){root.innerHTML='<div class="empty">Error: '+esc(error.message)+'</div>';return}
+  if(!data.length){root.innerHTML='<div class="empty">Inbox khaali hai. Upar se kuch capture karo 👆</div>';return}
+  root.innerHTML='<div class="sec-title">Inbox — decide karo</div>'+data.map(c=>`
+    <div class="item">
+      <div class="txt">${esc(c.raw_text)}</div>
+      <div class="meta">${new Date(c.created_at).toLocaleString('en-IN')}</div>
+      <div class="gate">
+        <button class="btn green sm" onclick="execCapture('${c.id}',this)">✓ Execute</button>
+        <button class="btn amber sm" onclick="parkCapture('${c.id}')">⏸ Park</button>
+        <button class="btn gray sm" onclick="dropCapture('${c.id}')">✕ Drop</button>
+      </div>
+    </div>`).join('');
+}
+
+async function parkCapture(id){
+  await sb.from('plan_captures').update({status:'parked'}).eq('id',id);
+  toast('Parked — baad me dekhenge');loadInbox();loadParked();
+}
+async function dropCapture(id){
+  await sb.from('plan_captures').update({status:'dropped'}).eq('id',id);
+  toast('Drop kar diya');loadInbox();
+}
+
+// ====== EXECUTE: AI steps + create goal ======
+async function execCapture(id,btn){
+  const {data:cap}=await sb.from('plan_captures').select('*').eq('id',id).single();
+  if(!cap)return;
+  openExecModal(cap);
+}
+
+function openExecModal(cap){
+  document.getElementById('modalRoot').innerHTML=`
+    <div class="modal-bg" onclick="if(event.target===this)closeModal()">
+      <div class="modal">
+        <h3>Execute — Goal banao</h3>
+        <div class="field">
+          <label>Goal title</label>
+          <input id="mTitle" value="${esc(cap.raw_text)}">
+        </div>
+        <div class="field">
+          <label>Category</label>
+          <select id="mCat">
+            <option>Business Strategy</option>
+            <option>Investor / JV</option>
+            <option>New Development</option>
+            <option>Operations</option>
+            <option>Personal Brand</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>AI se steps banwao (optional)</label>
+          <button class="btn ghost" id="aiBtn" onclick="genSteps('${esc(cap.raw_text)}')">🤖 Steps suggest karo</button>
+          <div id="aiOut" style="margin-top:10px;font-size:13px"></div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn gray" onclick="closeModal()">Cancel</button>
+          <button class="btn green" onclick="confirmExec('${cap.id}')">Goal banao</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+let AI_STEPS=[];
+async function genSteps(text){
+  const btn=document.getElementById('aiBtn');const out=document.getElementById('aiOut');
+  btn.innerHTML='<span class="spinner"></span>Soch raha hu...';btn.disabled=true;
+  try{
+    const r=await fetch('/api/ai-steps',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({idea:text})});
+    const j=await r.json();
+    if(j.steps&&j.steps.length){
+      AI_STEPS=j.steps;
+      out.innerHTML='<b>Suggested steps:</b><ol style="margin:8px 0 0 18px">'+
+        j.steps.map(s=>'<li style="margin-bottom:4px">'+esc(s)+'</li>').join('')+'</ol>';
+    }else{out.innerHTML='<span style="color:#b42318">'+(j.error||'Kuch nahi mila')+'</span>'}
+  }catch(e){out.innerHTML='<span style="color:#b42318">AI error: '+esc(e.message)+'</span>'}
+  btn.innerHTML='🤖 Dobara suggest karo';btn.disabled=false;
+}
+
+async function confirmExec(capId){
+  const title=document.getElementById('mTitle').value.trim();
+  const cat=document.getElementById('mCat').value;
+  if(!title){toast('Title daalo');return}
+  // create goal
+  const {data:goal,error}=await sb.from('plan_goals')
+    .insert({owner_id:ME.id,title,category:cat,status:'active'}).select().single();
+  if(error){toast('Error: '+error.message);return}
+  // if AI steps, create a project+task+steps
+  if(AI_STEPS.length){
+    const {data:proj}=await sb.from('plan_projects')
+      .insert({goal_id:goal.id,owner_id:ME.id,title:title}).select().single();
+    const {data:task}=await sb.from('plan_tasks')
+      .insert({project_id:proj.id,owner_id:ME.id,title:title}).select().single();
+    const rows=AI_STEPS.map((s,i)=>({task_id:task.id,title:s,sort_order:i}));
+    await sb.from('plan_steps').insert(rows);
+  }
+  await sb.from('plan_captures').update({status:'executed'}).eq('id',capId);
+  AI_STEPS=[];closeModal();toast('Goal ban gaya 🎯');
+  loadInbox();loadGoals();switchTab('goals');
+}
+
+// ====== GOALS (hierarchy + progress) ======
+async function loadGoals(){
+  const {data:goals,error}=await sb.from('plan_goals').select('*')
+    .eq('status','active').order('created_at',{ascending:false});
+  const root=document.getElementById('view-goals');
+  if(error){root.innerHTML='<div class="empty">Error: '+esc(error.message)+'</div>';return}
+  if(!goals.length){root.innerHTML='<div class="empty">Abhi koi goal nahi. Inbox se kuch Execute karo 🎯</div>';return}
+  // fetch all steps progress
+  let html='<div class="sec-title">Active Goals</div>';
+  for(const g of goals){
+    const prog=await goalProgress(g.id);
+    const rag=prog.pct>=70?'b-green':prog.pct>=30?'b-amber':'b-red';
+    const ragTxt=prog.pct>=70?'On track':prog.pct>=30?'In progress':'Just started';
+    html+=`
+      <div class="goal">
+        <div class="goal-head" onclick="toggleGoal('${g.id}')">
+          <div class="gt"><span>${esc(g.title)}</span><span class="pct">${prog.pct}%</span></div>
+          <div class="bar"><i style="width:${prog.pct}%"></i></div>
+          <div><span class="goal-cat">${esc(g.category||'')}</span>
+            <span class="badge ${rag}" style="margin-left:6px">${ragTxt}</span>
+            <span class="meta" style="margin-left:6px">${prog.done}/${prog.total} steps</span></div>
+        </div>
+        <div id="g-detail-${g.id}" class="hide" style="padding:0 15px 14px"></div>
+      </div>`;
+  }
+  root.innerHTML=html;
+}
+
+async function goalProgress(goalId){
+  const {data:projs}=await sb.from('plan_projects').select('id').eq('goal_id',goalId);
+  if(!projs||!projs.length)return{pct:0,done:0,total:0};
+  const pIds=projs.map(p=>p.id);
+  const {data:tasks}=await sb.from('plan_tasks').select('id').in('project_id',pIds);
+  if(!tasks||!tasks.length)return{pct:0,done:0,total:0};
+  const tIds=tasks.map(t=>t.id);
+  const {data:steps}=await sb.from('plan_steps').select('is_done').in('task_id',tIds);
+  if(!steps||!steps.length)return{pct:0,done:0,total:0};
+  const done=steps.filter(s=>s.is_done).length;
+  return{pct:Math.round(done/steps.length*100),done,total:steps.length};
+}
+
+async function toggleGoal(goalId){
+  const box=document.getElementById('g-detail-'+goalId);
+  if(!box.classList.contains('hide')){box.classList.add('hide');return}
+  box.classList.remove('hide');box.innerHTML='<div class="meta">Loading...</div>';
+  const {data:projs}=await sb.from('plan_projects').select('id').eq('goal_id',goalId);
+  if(!projs||!projs.length){box.innerHTML='<div class="meta">Koi steps nahi</div>';return}
+  const pIds=projs.map(p=>p.id);
+  const {data:tasks}=await sb.from('plan_tasks').select('id,title').in('project_id',pIds);
+  const tIds=tasks.map(t=>t.id);
+  const {data:steps}=await sb.from('plan_steps').select('*').in('task_id',tIds).order('sort_order');
+  box.innerHTML='<div class="steps">'+steps.map(s=>`
+    <label class="step ${s.is_done?'done':''}">
+      <input type="checkbox" ${s.is_done?'checked':''} onchange="toggleStep('${s.id}','${goalId}',this.checked)">
+      <span>${esc(s.title)}</span>
+    </label>`).join('')+'</div>';
+}
+
+async function toggleStep(stepId,goalId,checked){
+  await sb.from('plan_steps').update({is_done:checked}).eq('id',stepId);
+  loadGoals();
+  setTimeout(()=>toggleGoal(goalId),100);setTimeout(()=>toggleGoal(goalId),120);
+}
+
+// ====== PARKED ======
+async function loadParked(){
+  const {data,error}=await sb.from('plan_captures').select('*')
+    .eq('owner_id',ME.id).eq('status','parked').order('created_at',{ascending:false});
+  const root=document.getElementById('view-parked');
+  if(error){root.innerHTML='<div class="empty">Error</div>';return}
+  if(!data||!data.length){root.innerHTML='<div class="empty">Koi parked idea nahi. Jo 50-50 ho wo yaha aata hai ⏸</div>';return}
+  root.innerHTML='<div class="sec-title">Parked — dobara socho</div>'+data.map(c=>`
+    <div class="item">
+      <div class="txt">${esc(c.raw_text)}</div>
+      <div class="meta">${new Date(c.created_at).toLocaleString('en-IN')}</div>
+      <div class="gate">
+        <button class="btn green sm" onclick="execCapture('${c.id}')">✓ Ab Execute karo</button>
+        <button class="btn gray sm" onclick="dropCapture('${c.id}')">✕ Drop</button>
+      </div>
+    </div>`).join('');
+}
+
+// ====== MIC (voice capture) ======
+let recog=null,recording=false;
+function toggleMic(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){toast('Is browser me voice support nahi');return}
+  const btn=document.getElementById('micBtn');
+  if(recording){recog.stop();return}
+  recog=new SR();recog.lang='hi-IN';recog.continuous=true;recog.interimResults=true;
+  let base=document.getElementById('capText').value;
+  recog.onresult=e=>{
+    let txt='';for(let i=e.resultIndex;i<e.results.length;i++)txt+=e.results[i][0].transcript;
+    document.getElementById('capText').value=(base?base+' ':'')+txt;
+  };
+  recog.onend=()=>{recording=false;btn.classList.remove('rec');btn.textContent='🎤'};
+  recog.onerror=()=>{recording=false;btn.classList.remove('rec');btn.textContent='🎤'};
+  recog.start();recording=true;btn.classList.add('rec');btn.textContent='⏹';
+}
+
+// ====== BOOT ======
+(async()=>{
+  const {data:{session}}=await sb.auth.getSession();
+  if(session)initApp();
+})();
+</script>
+</body>
+</html>
