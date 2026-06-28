@@ -1,4 +1,4 @@
-// Vercel Serverless Function — AI auto-steps & tactics
+// Vercel Serverless Function — AI auto-steps, tactics & daily categorize
 // Anthropic API key yahan SERVER pe rehti hai (browser me nahi) = safe
 
 export default async function handler(req, res) {
@@ -11,9 +11,26 @@ export default async function handler(req, res) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return res.status(500).json({ error: 'API key set nahi hai Vercel me' });
 
-  let prompt;
-  if (mode === 'tactics') {
-    // 12-Week Year ke hisaab se weekly lead-indicator tactics
+  let prompt, expectJson = 'array';
+
+  if (mode === 'daily') {
+    expectJson = 'object';
+    prompt = `Tum ek business assistant ho. Niche ek founder ne apna kaam bola/likha hai (Hinglish me). Tumhe 2 cheezein karni hain:
+1. Iski CATEGORY pakdo. Sirf in me se ek chuno: Sales, Order, Accounts, Development, Expansion, Operations, Other
+   - Sales = call/lead/enquiry/client meeting/quote
+   - Order = naya order mila/dispatch/delivery
+   - Accounts = payment/invoice/depreciation/balance sheet/CA/tax/finance
+   - Development = app/software/Claude/tech/coding/automation banaya
+   - Expansion = nayi machine/capacity/IML/growth/investor/JV
+   - Operations = factory/production/MOS/IMS/machine/quality/staff
+   - Other = jo upar fit na ho
+2. Ek SAAF chhota summary banao (proper English, 1 line).
+
+Kaam: "${idea}"
+
+Sirf is JSON format me jawab do, kuch aur nahi (no markdown):
+{"category":"Sales","clean":"Received order enquiry from Domino's for 500 containers"}`;
+  } else if (mode === 'tactics') {
     prompt = `Tum ek business coach ho jo "12 Week Year" framework jaanta hai. Niche ek 12-week goal diya hai (Hinglish me ho sakta hai). Iske liye 4-6 TACTICS banao.
 
 TACTIC kya hota hai: weekly repeat hone wala kaam jo aap CONTROL karte ho (lead indicator). Result nahi, ACTIVITY. Har tactic me ek number/frequency ho jab possible ho.
@@ -57,6 +74,13 @@ Sirf is format me jawab do:
 
     let text = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('').trim();
     text = text.replace(/```json/g, '').replace(/```/g, '').trim();
+
+    if (expectJson === 'object') {
+      let obj = { category: 'Other', clean: idea };
+      try { obj = JSON.parse(text); } catch (e) {}
+      return res.status(200).json(obj);
+    }
+
     let steps = [];
     try { steps = JSON.parse(text); } catch (e) {
       steps = text.split('\n').map(s => s.replace(/^[-*\d.)\s]+/, '').trim()).filter(Boolean);
