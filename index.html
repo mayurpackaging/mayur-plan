@@ -147,6 +147,11 @@
   .wk-cell.wk-done{background:var(--green);border-color:var(--green)}
   .wk-cell.wk-cur{border-color:var(--navy);border-width:2px}
   .wk-cell:not(.wk-done):hover{background:#eef1f5}
+  .ai-tac{display:flex;align-items:center;gap:10px;justify-content:space-between;
+    background:var(--surface-2,#f4f6f9);border:1px solid var(--line);border-radius:9px;padding:9px 11px;margin-bottom:7px}
+  .ai-tac span{font-size:13px;flex:1}
+  .ai-tac .btn{flex:0 0 auto}
+  .btn.green{background:var(--green)}
 
   /* Goal hierarchy */
   .goal{background:var(--card);border-radius:12px;border:1px solid var(--line);margin-bottom:12px;overflow:hidden}
@@ -793,22 +798,75 @@ async function newCycle(){
   toast('Naya cycle ban gaya 📅');loadW12();
 }
 async function newWGoal(cycleId){
-  const title=prompt('Goal? (jaise "Exhibition se 50 qualified leads")');
+  const title=prompt('Goal? (jaise "IMS theek karna through WhatsApp")');
   if(!title)return;
-  const lag=prompt('Lag target (result)? (jaise "50 leads, 10 meetings")','');
-  await sb.from('plan_wgoals').insert({cycle_id:cycleId,owner_id:ME.id,title,lag_target:lag||null});
-  toast('Goal add ho gaya 🎯');loadW12();
+  const lag=prompt('Lag target (result jo chahte ho)? (jaise "100% accurate IMS, 0 manual entry")','');
+  const {data:goal,error}=await sb.from('plan_wgoals')
+    .insert({cycle_id:cycleId,owner_id:ME.id,title,lag_target:lag||null}).select().single();
+  if(error){toast('Error: '+error.message);return}
+  toast('Goal add ho gaya 🎯');
+  // ab AI se tactics suggest karwao
+  openTacticAI(goal.id,title);
 }
+
+function openTacticAI(wgoalId,goalTitle){
+  document.getElementById('modalRoot').innerHTML=`
+    <div class="modal-bg" onclick="if(event.target===this)closeModal()">
+      <div class="modal">
+        <h3>Tactics — ${esc(goalTitle)}</h3>
+        <p style="font-size:13px;color:var(--muted);margin-bottom:12px">Weekly kaam jo aap control karte ho. AI suggest kar sakta hai, ya khud likho.</p>
+        <button class="btn ghost" id="aiTacBtn" onclick="genTactics('${esc(goalTitle)}','${wgoalId}')">🤖 AI se tactics suggest karwao</button>
+        <div id="aiTacOut" style="margin-top:12px"></div>
+        <div class="field" style="margin-top:14px">
+          <label>Ya khud ek tactic likho</label>
+          <input id="manualTac" placeholder="jaise: 10 dealer call/week">
+        </div>
+        <div class="modal-actions">
+          <button class="btn gray" onclick="closeModal();loadW12()">Ho gaya</button>
+          <button class="btn" onclick="addOneTactic('${wgoalId}')">+ Add</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+async function genTactics(goalTitle,wgoalId){
+  const btn=document.getElementById('aiTacBtn');const out=document.getElementById('aiTacOut');
+  btn.innerHTML='<span class="spinner"></span>Soch raha hu...';btn.disabled=true;
+  try{
+    const r=await fetch('/api/ai-steps',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({idea:goalTitle,mode:'tactics'})});
+    const j=await r.json();
+    if(j.steps&&j.steps.length){
+      out.innerHTML='<div style="font-size:13px;font-weight:600;margin-bottom:8px">Suggested tactics (jo chahiye uspe Add dabao):</div>'+
+        j.steps.map(t=>`<div class="ai-tac">
+          <span>${esc(t)}</span>
+          <button class="btn sm" onclick="quickAddTactic('${wgoalId}',this)" data-t="${esc(t)}">+ Add</button>
+        </div>`).join('');
+    }else{out.innerHTML='<span style="color:#b42318">'+(j.error||'Kuch nahi mila')+'</span>'}
+  }catch(e){out.innerHTML='<span style="color:#b42318">AI error: '+esc(e.message)+'</span>'}
+  btn.innerHTML='🤖 Dobara suggest karwao';btn.disabled=false;
+}
+
+async function quickAddTactic(wgoalId,btn){
+  const t=btn.getAttribute('data-t');
+  await sb.from('plan_tactics').insert({wgoal_id:wgoalId,owner_id:ME.id,title:t});
+  btn.textContent='✓ Added';btn.disabled=true;btn.classList.add('green');
+}
+
+async function addOneTactic(wgoalId){
+  const inp=document.getElementById('manualTac');
+  const t=inp.value.trim();
+  if(!t){toast('Kuch likho');return}
+  await sb.from('plan_tactics').insert({wgoal_id:wgoalId,owner_id:ME.id,title:t});
+  inp.value='';toast('Tactic add ho gaya');
+}
+
 async function newTactic(wgoalId){
-  const title=prompt('Tactic? (weekly kaam, jaise "10 dealer call/week")');
-  if(!title)return;
-  const who=prompt('Kisko assign? (naam, ya khaali chhodo)','');
-  await sb.from('plan_tactics').insert({wgoal_id:wgoalId,owner_id:ME.id,title,assigned_name:who||null});
-  toast('Tactic add ho gaya');loadW12();
+  const {data:g}=await sb.from('plan_wgoals').select('title').eq('id',wgoalId).single();
+  openTacticAI(wgoalId,g?g.title:'Goal');
 }
 async function toggleWeek(tacticId,week,wasDone){
   const newDone=!wasDone;
-  // upsert weekly cell
   const {data:existing}=await sb.from('plan_weekly').select('id').eq('tactic_id',tacticId).eq('week_no',week);
   if(existing&&existing.length){
     await sb.from('plan_weekly').update({done:newDone}).eq('id',existing[0].id);
