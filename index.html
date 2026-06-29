@@ -159,6 +159,9 @@
   .tac-title{font-size:13px;display:flex;align-items:center;gap:5px;margin-bottom:5px;flex-wrap:wrap}
   .tac-title-txt{flex:1;min-width:0}
   .tac-actions{display:flex;gap:2px;flex:0 0 auto}
+  .sched-chip{display:inline-block;background:#fff0e0;color:#9a6700;font-size:10px;font-weight:600;
+    padding:1px 7px;border-radius:20px;margin-left:5px}
+  .tac-dot{font-size:13px}
   .fw-badge{display:inline-block;background:#eef1f5;color:var(--muted);font-size:9px;font-weight:700;
     padding:1px 5px;border-radius:4px;margin-left:4px}
   .fw-badge.fw-now{background:var(--navy);color:#fff}
@@ -630,7 +633,7 @@ async function toggleStep(stepId,goalId,checked){
 }
 
 // ====== TODAY / SCHEDULER ======
-const SLOTS=['10–11','11–12','12–1','1–2','2–3','3–4','4–5','5–6','6–7'];
+const SLOTS=['10–11','11–12','12–1','1–2','2–3','3–4','4–5','5–6','6–7','7–8 PM','8–9 PM'];
 function todayStr(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
 
 async function pinToday(stepId,checked){
@@ -649,42 +652,47 @@ async function loadToday(){
   const {data:steps,error}=await sb.from('plan_steps').select('*')
     .or('pinned_today.eq.true,scheduled_date.eq.'+today+',due_date.eq.'+today);
   if(error){root.innerHTML='<div class="empty">Error: '+esc(error.message)+'</div>';return}
-  const list=(steps||[]).filter(s=>!s.is_done);
-  const done=(steps||[]).filter(s=>s.is_done).length;
+  // tactics jo aaj scheduled hain
+  const {data:tacs}=await sb.from('plan_tactics').select('*').eq('scheduled_date',today);
+  // normalize: ek common list banao {id,title,time_slot,type,assigned_name}
+  const items=[];
+  (steps||[]).forEach(s=>{if(!s.is_done)items.push({id:s.id,title:s.title,time_slot:s.time_slot,type:'step',who:s.assigned_name})});
+  (tacs||[]).forEach(t=>items.push({id:t.id,title:t.title,time_slot:t.time_slot,type:'tactic',who:t.assigned_name}));
+  const doneCount=(steps||[]).filter(s=>s.is_done).length;
 
   const dateLabel=new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'});
 
   let html=`<div class="today-head">
     <div class="td-date">☀️ ${dateLabel}</div>
-    <div class="td-stat">${list.length} kaam baaki · ${done} ho gaye</div>
+    <div class="td-stat">${items.length} kaam baaki · ${doneCount} ho gaye</div>
   </div>`;
 
-  if(!list.length && !done){
-    html+='<div class="empty">Aaj ke liye kuch schedule nahi.<br>Goals me jaake kisi step ko "☀️ Aaj karna hai" pin karo.</div>';
+  if(!items.length && !doneCount){
+    html+='<div class="empty">Aaj ke liye kuch schedule nahi.<br>Goal ke step ko "☀️ Aaj" pin karo, ya 12-Week tactic pe 📅 date set karo.</div>';
     root.innerHTML=html;return;
   }
 
-  // Scheduler: slot-wise
-  html+='<div class="sec-title">⏰ Aaj ka schedule (10am–7pm)</div>';
+  // Scheduler: slot-wise (10am-9pm)
+  html+='<div class="sec-title">⏰ Aaj ka schedule (10am–9pm)</div>';
   for(const slot of SLOTS){
-    const inSlot=list.filter(s=>s.time_slot===slot);
+    const inSlot=items.filter(s=>s.time_slot===slot);
     html+=`<div class="slot ${inSlot.length?'filled':''}">
       <div class="slot-time">${slot}</div>
       <div class="slot-body">${inSlot.length?inSlot.map(s=>`
         <div class="slot-task">
-          <input type="checkbox" onchange="doneToday('${s.id}')"> <span>${esc(s.title)}${s.assigned_name?` <span class="who-chip sm">👤 ${esc(s.assigned_name)}</span>`:''}</span>
+          ${s.type==='step'?`<input type="checkbox" onchange="doneToday('${s.id}')">`:'<span class="tac-dot">🎯</span>'} <span>${esc(s.title)}${s.who?` <span class="who-chip sm">👤 ${esc(s.who)}</span>`:''}</span>
         </div>`).join(''):'<span class="slot-empty">—</span>'}</div>
     </div>`;
   }
 
-  // Unscheduled pinned tasks (aaj karna hai par slot nahi diya)
-  const noSlot=list.filter(s=>!s.time_slot);
+  // Unscheduled (aaj karna hai par slot nahi)
+  const noSlot=items.filter(s=>!s.time_slot);
   if(noSlot.length){
     html+='<div class="sec-title" style="margin-top:18px">📌 Aaj karne hain (slot do)</div>';
     html+=noSlot.map(s=>`
       <div class="item" style="padding:11px 14px">
-        <div class="slot-task"><input type="checkbox" onchange="doneToday('${s.id}')"> <span>${esc(s.title)}</span></div>
-        <select class="mini-slot" onchange="setSlot('${s.id}',this.value)">
+        <div class="slot-task">${s.type==='step'?`<input type="checkbox" onchange="doneToday('${s.id}')">`:'<span class="tac-dot">🎯</span>'} <span>${esc(s.title)}</span></div>
+        <select class="mini-slot" onchange="${s.type==='step'?`setSlot('${s.id}',this.value)`:`setTacSlot('${s.id}',this.value)`}">
           <option value="">Slot chuno...</option>
           ${SLOTS.map(sl=>`<option value="${sl}">${sl}</option>`).join('')}
         </select>
@@ -692,6 +700,11 @@ async function loadToday(){
   }
 
   root.innerHTML=html;
+}
+
+async function setTacSlot(id,slot){
+  await sb.from('plan_tactics').update({time_slot:slot||null}).eq('id',id);
+  toast('Slot set');loadToday();
 }
 
 async function doneToday(stepId){
@@ -878,8 +891,9 @@ async function loadW12(){
         const fw=t.focus_week?`<span class="fw-badge ${t.focus_week===curWeek?'fw-now':''}">W${t.focus_week}</span>`:'';
         html+=`<div class="tac-row">
           <div class="tac-title">
-            <span class="tac-title-txt">${esc(t.title)} ${fw}${t.assigned_name?`<span class="who-chip sm">👤 ${esc(t.assigned_name)}</span>`:''}</span>
+            <span class="tac-title-txt">${esc(t.title)} ${fw}${t.assigned_name?`<span class="who-chip sm">👤 ${esc(t.assigned_name)}</span>`:''}${t.scheduled_date?`<span class="sched-chip">📅 ${new Date(t.scheduled_date).toLocaleDateString('en-IN',{day:'numeric',month:'short'})}${t.time_slot?' · '+t.time_slot:''}</span>`:''}</span>
             <span class="tac-actions">
+              <button class="mini-edit" onclick="scheduleTactic('${t.id}','${esc(t.title).replace(/'/g,"\\'")}','${t.scheduled_date||''}','${t.time_slot||''}')" title="Schedule (date+time)">📅</button>
               <button class="mini-edit" onclick="openNotes('tactic','${t.id}','${esc(t.title).replace(/'/g,"\\'")}')" title="Notes">📝</button>
               <button class="mini-edit" onclick="editTactic('${t.id}','${esc(t.title).replace(/'/g,"\\'")}',${t.focus_week||0})" title="Edit">✏️</button>
               <button class="mini-edit" onclick="delTactic('${t.id}')" title="Delete">🗑</button>
@@ -1005,6 +1019,43 @@ async function delTactic(id){
   if(!confirm('Ye tactic delete ho jayegi. Pakka?'))return;
   await sb.from('plan_tactics').delete().eq('id',id);
   toast('Tactic delete');loadW12();
+}
+
+function scheduleTactic(id,title,curDate,curSlot){
+  document.getElementById('modalRoot').innerHTML=`
+    <div class="modal-bg" onclick="if(event.target===this)closeModal()">
+      <div class="modal">
+        <h3>📅 Schedule — ${esc(title)}</h3>
+        <p style="font-size:13px;color:var(--muted);margin-bottom:12px">Meeting/kaam ki date aur time set karo. Ye "Aaj" scheduler me us din dikhega.</p>
+        <div class="field">
+          <label>Date</label>
+          <input type="date" id="schDate" value="${curDate||todayStr()}">
+        </div>
+        <div class="field">
+          <label>Time slot</label>
+          <select id="schSlot">
+            <option value="">Time chuno...</option>
+            ${SLOTS.map(s=>`<option value="${s}" ${curSlot===s?'selected':''}>${s}</option>`).join('')}
+          </select>
+        </div>
+        <div class="modal-actions">
+          ${curDate?`<button class="btn gray" onclick="clearSchedule('${id}')">Hatao</button>`:''}
+          <button class="btn" onclick="saveSchedule('${id}')">Save</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+async function saveSchedule(id){
+  const date=document.getElementById('schDate').value||null;
+  const slot=document.getElementById('schSlot').value||null;
+  if(!date){toast('Date daalo');return}
+  await sb.from('plan_tactics').update({scheduled_date:date,time_slot:slot}).eq('id',id);
+  closeModal();toast('Schedule ho gaya 📅');loadW12();
+}
+async function clearSchedule(id){
+  await sb.from('plan_tactics').update({scheduled_date:null,time_slot:null}).eq('id',id);
+  closeModal();toast('Schedule hata diya');loadW12();
 }
 
 // ====== NOTES / MEETING LOG (har tactic/step) ======
