@@ -457,7 +457,7 @@ async function initApp(){
   document.getElementById('login').classList.add('hide');
   document.getElementById('app').classList.remove('hide');
   document.getElementById('whoami').textContent=user.email;
-  loadHome();loadDaily();loadToday();loadGoals();loadParked();
+  loadHome();loadDaily();loadToday();loadInbox();loadGoals();loadParked();
 }
 
 // ====== TABS ======
@@ -471,6 +471,9 @@ function switchTab(t){
   if(t==='today')loadToday();
   if(t==='dash')loadDash();
   if(t==='w12')loadW12();
+  if(t==='inbox')loadInbox();
+  if(t==='goals')loadGoals();
+  if(t==='parked')loadParked();
 }
 
 // ====== CAPTURE ======
