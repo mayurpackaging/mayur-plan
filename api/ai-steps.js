@@ -15,21 +15,24 @@ export default async function handler(req, res) {
 
   if (mode === 'daily') {
     expectJson = 'object';
-    prompt = `Tum ek business assistant ho. Niche ek founder ne apna kaam bola/likha hai (Hinglish me). Tumhe 2 cheezein karni hain:
-1. Iski CATEGORY pakdo. Sirf in me se ek chuno: Sales, Order, Accounts, Development, Expansion, Operations, Other
-   - Sales = call/lead/enquiry/client meeting/quote
-   - Order = naya order mila/dispatch/delivery
-   - Accounts = payment/invoice/depreciation/balance sheet/CA/tax/finance
-   - Development = app/software/Claude/tech/coding/automation banaya
-   - Expansion = nayi machine/capacity/IML/growth/investor/JV
-   - Operations = factory/production/MOS/IMS/machine/quality/staff
-   - Other = jo upar fit na ho
-2. Ek SAAF chhota summary banao (proper English, 1 line).
+    prompt = `Tum ek assistant ho. Niche ek founder ne apna kaam bola/likha hai (Hinglish me). Do cheezein karo:
+
+1. CATEGORY pakdo. Sirf in me se ek: Sales, Order, Accounts, Development, Expansion, JV, Operations, Other
+   - Sales = call/lead/enquiry/client meeting/quote/sales
+   - Order = naya order/dispatch/delivery
+   - Accounts = payment/invoice/depreciation/balance sheet/CA/tax/finance/accounts
+   - Development = app/software/Claude/tech/coding/system
+   - Expansion = nayi machine/capacity/land/mould/plant
+   - JV = investor/JV/equity/partner deal/agreement
+   - Operations = factory/production/MOS/IMS/quality/staff
+   - Other = baaki sab
+
+2. "clean" me sirf chhoti grammar/spelling theek karo. Founder ne jo bola WAHI rakho — apni taraf se kuch mat jodo, matlab mat badlo, naya information mat banao. Bas thoda readable banao. Agar already theek hai to jaisa hai waisa rakho.
 
 Kaam: "${idea}"
 
-Sirf is JSON format me jawab do, kuch aur nahi (no markdown):
-{"category":"Sales","clean":"Received order enquiry from Domino's for 500 containers"}`;
+Sirf is JSON me jawab do (no markdown):
+{"category":"Accounts","clean":"<founder ki baat, bas thodi saaf>"}`;
   } else if (mode === 'tactics') {
     prompt = `Tum ek business coach ho jo "12 Week Year" framework jaanta hai. Niche ek 12-week goal diya hai (Hinglish me ho sakta hai). Iske liye 4-6 TACTICS banao.
 
