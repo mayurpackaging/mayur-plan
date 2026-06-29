@@ -142,17 +142,23 @@
   .wg-title{font-size:15px;font-weight:600;color:var(--navy)}
   .wg-lag{font-size:12px;color:var(--muted);margin-top:2px}
   .wg-empty,.wg-add{padding:6px 0}
-  .wk-grid{display:flex;gap:0;align-items:stretch;min-width:440px}
-  .wk-tactic-h,.wk-tactic{flex:0 0 130px;font-size:12px;padding:6px 8px 6px 0;display:flex;align-items:center;gap:5px;flex-wrap:wrap}
-  .wk-tactic-h{font-weight:600;color:var(--muted)}
-  .wk-cells-h,.wk-cells{flex:1;display:grid;grid-template-columns:repeat(12,1fr);gap:2px}
-  .wk-num{font-size:10px;text-align:center;color:var(--muted);padding:3px 0}
+  .wk-grid{display:flex;gap:0;align-items:center;min-width:0;margin-bottom:3px}
+  .wk-tactic-h,.wk-tactic{flex:0 0 150px;font-size:12px;padding:5px 10px 5px 0;display:flex;align-items:center;gap:4px;line-height:1.25}
+  .wk-tactic-h{font-weight:600;color:var(--muted);align-items:flex-end}
+  .wk-cells-h,.wk-cells{flex:1;display:grid;grid-template-columns:repeat(12,1fr);gap:3px}
+  .wk-num{font-size:10px;text-align:center;color:var(--muted);padding:2px 0;line-height:1}
   .wk-num.wk-cur{color:var(--navy);font-weight:700}
-  .wk-cell{aspect-ratio:1;border:1px solid var(--line);border-radius:4px;display:flex;align-items:center;
-    justify-content:center;font-size:11px;cursor:pointer;color:#fff;min-height:24px}
-  .wk-cell.wk-done{background:var(--green);border-color:var(--green)}
+  .wk-cell{height:26px;border:1px solid var(--line);border-radius:4px;display:flex;align-items:center;
+    justify-content:center;font-size:10px;cursor:pointer;color:#c0c7d0}
+  .wk-cell.wk-done{background:var(--green);border-color:var(--green);color:#fff;font-size:11px}
   .wk-cell.wk-cur{border-color:var(--navy);border-width:2px}
+  .wk-cell.wk-cur:not(.wk-done){color:var(--navy);font-weight:700}
   .wk-cell:not(.wk-done):hover{background:#eef1f5}
+  /* tactic title row (above its week cells) */
+  .tac-row{margin-bottom:9px;padding-bottom:9px;border-bottom:1px solid #f0f2f5}
+  .tac-title{font-size:13px;display:flex;align-items:center;gap:5px;margin-bottom:5px;flex-wrap:wrap}
+  .tac-title-txt{flex:1;min-width:0}
+  .tac-actions{display:flex;gap:2px;flex:0 0 auto}
   .fw-badge{display:inline-block;background:#eef1f5;color:var(--muted);font-size:9px;font-weight:700;
     padding:1px 5px;border-radius:4px;margin-left:4px}
   .fw-badge.fw-now{background:var(--navy);color:#fff}
@@ -867,18 +873,23 @@ async function loadW12(){
     if(!gTactics.length){
       html+=`<div class="wg-empty"><button class="btn sm" onclick="newTactic('${g.id}')">+ Tactic add karo</button></div>`;
     }else{
-      // week header
-      html+='<div class="wk-grid"><div class="wk-tactic-h">Tactic (weekly)</div><div class="wk-cells-h">';
-      for(let w=1;w<=12;w++){html+=`<div class="wk-num ${w===curWeek?'wk-cur':''}">${w}</div>`}
-      html+='</div></div>';
-      // each tactic row
+      // each tactic = title row + week cells (with numbers) below
       for(const t of gTactics){
-        const fw=t.focus_week?` <span class="fw-badge ${t.focus_week===curWeek?'fw-now':''}">W${t.focus_week}</span>`:'';
-        html+=`<div class="wk-grid"><div class="wk-tactic">${esc(t.title)}${fw}${t.assigned_name?`<span class="who-chip sm">👤 ${esc(t.assigned_name)}</span>`:''} <button class="mini-edit" onclick="openNotes('tactic','${t.id}','${esc(t.title).replace(/'/g,"\\'")}')" title="Notes/Meeting">📝</button><button class="mini-edit" onclick="editTactic('${t.id}','${esc(t.title).replace(/'/g,"\\'")}',${t.focus_week||0})" title="Edit">✏️</button><button class="mini-edit" onclick="delTactic('${t.id}')" title="Delete">🗑</button></div><div class="wk-cells">`;
+        const fw=t.focus_week?`<span class="fw-badge ${t.focus_week===curWeek?'fw-now':''}">W${t.focus_week}</span>`:'';
+        html+=`<div class="tac-row">
+          <div class="tac-title">
+            <span class="tac-title-txt">${esc(t.title)} ${fw}${t.assigned_name?`<span class="who-chip sm">👤 ${esc(t.assigned_name)}</span>`:''}</span>
+            <span class="tac-actions">
+              <button class="mini-edit" onclick="openNotes('tactic','${t.id}','${esc(t.title).replace(/'/g,"\\'")}')" title="Notes">📝</button>
+              <button class="mini-edit" onclick="editTactic('${t.id}','${esc(t.title).replace(/'/g,"\\'")}',${t.focus_week||0})" title="Edit">✏️</button>
+              <button class="mini-edit" onclick="delTactic('${t.id}')" title="Delete">🗑</button>
+            </span>
+          </div>
+          <div class="wk-cells">`;
         for(let w=1;w<=12;w++){
           const cell=weekly.find(x=>x.tactic_id===t.id&&x.week_no===w);
           const done=cell&&cell.done;
-          html+=`<div class="wk-cell ${done?'wk-done':''} ${w===curWeek?'wk-cur':''}" onclick="toggleWeek('${t.id}',${w},${done?'true':'false'})">${done?'✓':''}</div>`;
+          html+=`<div class="wk-cell ${done?'wk-done':''} ${w===curWeek?'wk-cur':''}" onclick="toggleWeek('${t.id}',${w},${done?'true':'false'})">${done?'✓':w}</div>`;
         }
         html+='</div></div>';
       }
