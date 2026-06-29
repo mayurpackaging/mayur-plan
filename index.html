@@ -290,6 +290,52 @@
   @keyframes spin{to{transform:rotate(360deg)}}
   .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--navy);
     color:#fff;padding:11px 20px;border-radius:10px;font-size:14px;z-index:200;box-shadow:0 4px 16px rgba(0,0,0,.2)}
+
+  /* ===== HOME — Mission Control ===== */
+  .hero{background:linear-gradient(145deg,#12304d 0%,#1F4E79 60%,#27679d 100%);
+    border-radius:20px;padding:22px 20px;color:#fff;margin-bottom:16px;
+    box-shadow:0 10px 30px rgba(31,78,121,.28);position:relative;overflow:hidden}
+  .hero::after{content:'';position:absolute;top:-40px;right:-40px;width:160px;height:160px;
+    background:radial-gradient(circle,rgba(245,194,98,.25),transparent 70%);border-radius:50%}
+  .hero-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px;position:relative;z-index:1}
+  .hero-greet{font-size:19px;font-weight:700;letter-spacing:-.3px}
+  .hero-date{font-size:12px;opacity:.75;margin-top:3px}
+  .hero-logo{width:42px;height:42px;border-radius:11px;background:rgba(255,255,255,.14);
+    display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;letter-spacing:.5px}
+  .hero-mission{position:relative;z-index:1;margin-bottom:18px}
+  .hm-label{font-size:10px;text-transform:uppercase;letter-spacing:2px;opacity:.6}
+  .hm-value{font-size:30px;font-weight:800;letter-spacing:-.5px;margin:2px 0;
+    background:linear-gradient(90deg,#fff,#f5c262);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  .hm-sub{font-size:13px;opacity:.85}
+  .hero-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;position:relative;z-index:1}
+  .hs{background:rgba(255,255,255,.10);border-radius:12px;padding:11px 6px;text-align:center;backdrop-filter:blur(4px)}
+  .hs-num{font-size:20px;font-weight:800;line-height:1}
+  .hs-num.g{color:#7ee0a6} .hs-num.a{color:#ffd98a} .hs-num.r{color:#ff9b8f}
+  .hs-lbl{font-size:10px;opacity:.7;margin-top:4px}
+
+  .home-capture{display:flex;gap:8px;margin-bottom:16px}
+  .home-capture input{flex:1;border-radius:12px;border:1px solid var(--line);padding:13px 15px}
+  .home-capture .mic{flex:0 0 auto}
+  .home-capture .btn{flex:0 0 auto;width:46px;padding:0;font-size:22px;border-radius:12px}
+
+  .home-alert{background:#fdeceb;border:1px solid var(--red);color:var(--red);border-radius:12px;
+    padding:13px 15px;font-size:14px;margin-bottom:14px;cursor:pointer}
+  .home-card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px 17px;margin-bottom:14px}
+  .hc-head{font-size:14px;font-weight:700;color:var(--navy);margin-bottom:10px}
+  .hc-line{font-size:14px;color:var(--txt);padding:4px 0;line-height:1.4}
+  .hc-empty{font-size:13px;color:var(--muted);padding:6px 0}
+  .hc-link{background:none;border:none;color:var(--navy);font-size:13px;font-weight:600;
+    cursor:pointer;padding:8px 0 0;display:block}
+  .home-tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:10px}
+  .tile{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:15px 6px;
+    text-align:center;font-size:12px;font-weight:600;color:var(--txt);cursor:pointer;transition:.15s}
+  .tile:active{transform:scale(.96)}
+  .tile span{display:block;font-size:22px;margin-bottom:5px}
+  @media(max-width:420px){
+    .hero-stats{gap:6px}.hs-num{font-size:18px}
+    .home-tiles{grid-template-columns:repeat(2,1fr)}
+    .hm-value{font-size:26px}
+  }
 </style>
 </head>
 <body>
@@ -335,7 +381,8 @@
 
     <!-- Tabs -->
     <div class="tabs">
-      <div class="tab on" data-tab="daily" onclick="switchTab('daily')">📓 Daily</div>
+      <div class="tab on" data-tab="home" onclick="switchTab('home')">🏠 Home</div>
+      <div class="tab" data-tab="daily" onclick="switchTab('daily')">📓 Daily</div>
       <div class="tab" data-tab="today" onclick="switchTab('today')">☀️ Aaj</div>
       <div class="tab" data-tab="dash" onclick="switchTab('dash')">📊 Dashboard</div>
       <div class="tab" data-tab="w12" onclick="switchTab('w12')">📅 12-Week</div>
@@ -344,7 +391,8 @@
       <div class="tab" data-tab="parked" onclick="switchTab('parked')">⏸ Parked</div>
     </div>
 
-    <div id="view-daily"></div>
+    <div id="view-home"></div>
+    <div id="view-daily" class="hide"></div>
     <div id="view-today" class="hide"></div>
     <div id="view-dash" class="hide"></div>
     <div id="view-w12" class="hide"></div>
@@ -404,15 +452,16 @@ async function initApp(){
   document.getElementById('login').classList.add('hide');
   document.getElementById('app').classList.remove('hide');
   document.getElementById('whoami').textContent=user.email;
-  loadDaily();loadToday();loadGoals();loadParked();
+  loadHome();loadDaily();loadToday();loadGoals();loadParked();
 }
 
 // ====== TABS ======
 function switchTab(t){
   document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x.dataset.tab===t));
-  ['daily','today','dash','w12','inbox','goals','parked'].forEach(v=>{
+  ['home','daily','today','dash','w12','inbox','goals','parked'].forEach(v=>{
     document.getElementById('view-'+v).classList.toggle('hide',v!==t);
   });
+  if(t==='home')loadHome();
   if(t==='daily')loadDaily();
   if(t==='today')loadToday();
   if(t==='dash')loadDash();
@@ -1235,8 +1284,122 @@ const CATS={
 // score weights (sales/order/JV/expansion = bigger value moves)
 const CAT_WEIGHT={'Sales':2,'Order':3,'Expansion':3,'JV':3,'Accounts':1.5,'Development':2,'Operations':1.5,'Other':1};
 
-let DAILY_VIEW_DATE=null;
-function loadDaily(){DAILY_VIEW_DATE=todayStr();renderDaily()}
+// ====== HOME — Mission Control cockpit ======
+async function loadHome(){
+  const root=document.getElementById('view-home');
+  const today=todayStr();
+  const hr=new Date().getHours();
+  const greet=hr<12?'Good morning':hr<17?'Good afternoon':'Good evening';
+  const name=(ME.email||'').split('@')[0].replace(/[._]/g,' ');
+  const dateLabel=new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+
+  // --- gather data ---
+  // active cycle + week + discipline
+  let cycleTitle='',cw=0,disc=100,missedCount=0,weekTactics=[],execPct=0;
+  const {data:cyc}=await sb.from('plan_cycles').select('*').eq('status','active').limit(1);
+  if(cyc&&cyc.length){
+    const c=cyc[0];cycleTitle=c.title.replace(/^Cycle \d+ — /,'');cw=weekOfCycle(c.start_date);
+    const {data:wg}=await sb.from('plan_wgoals').select('id').eq('cycle_id',c.id);
+    const gids=(wg||[]).map(x=>x.id);
+    if(gids.length){
+      const {data:tacs}=await sb.from('plan_tactics').select('*').in('wgoal_id',gids);
+      const tids=(tacs||[]).map(x=>x.id);
+      const {data:wkly}=tids.length?await sb.from('plan_weekly').select('*').in('tactic_id',tids):{data:[]};
+      let dueT=0,dueD=0,wkT=0,wkD=0;
+      (tacs||[]).forEach(t=>{const fw=t.focus_week||0;
+        if(fw>0&&fw<=cw){dueT++;const d=(wkly||[]).find(x=>x.tactic_id===t.id&&x.week_no===fw&&x.done);if(d)dueD++;else if(fw<cw)missedCount++;}
+        if(fw===cw){wkT++;const d=(wkly||[]).find(x=>x.tactic_id===t.id&&x.week_no===cw&&x.done);if(d)wkD++;else weekTactics.push(t);}
+      });
+      disc=dueT?Math.round(dueD/dueT*100):100;
+      execPct=wkT?Math.round(wkD/wkT*100):0;
+    }
+  }
+
+  // today's daily score
+  const {data:dlogs}=await sb.from('plan_daily').select('category').eq('owner_id',ME.id).eq('log_date',today);
+  let dScore=0;(dlogs||[]).forEach(l=>dScore+=CAT_WEIGHT[l.category]||1);
+  dScore=Math.min(10,Math.round(dScore));
+  // today's time
+  const {data:wl}=await sb.from('plan_worklog').select('minutes').eq('owner_id',ME.id).eq('log_date',today).not('minutes','is',null);
+  const totalMin=(wl||[]).reduce((a,b)=>a+(b.minutes||0),0);
+  const tHr=Math.floor(totalMin/60),tMin=totalMin%60;
+  // today's scheduled (steps + tactics)
+  const {data:tsteps}=await sb.from('plan_steps').select('id,title,is_done').or('pinned_today.eq.true,scheduled_date.eq.'+today+',due_date.eq.'+today);
+  const {data:ttacs}=await sb.from('plan_tactics').select('id,title').eq('scheduled_date',today);
+  const todayList=[...(tsteps||[]).filter(s=>!s.is_done).map(s=>s.title),...(ttacs||[]).map(t=>t.title)];
+
+  // --- render ---
+  let html=`
+  <div class="hero">
+    <div class="hero-top">
+      <div>
+        <div class="hero-greet">${greet}, ${esc(name)} 👋</div>
+        <div class="hero-date">${dateLabel}</div>
+      </div>
+      <div class="hero-logo">MP</div>
+    </div>
+    <div class="hero-mission">
+      <div class="hm-label">Mission</div>
+      <div class="hm-value">₹36 Cr → ₹100 Cr</div>
+      ${cw?`<div class="hm-sub">${esc(cycleTitle)} · Week ${cw} of 12</div>`:'<div class="hm-sub">Koi active cycle nahi</div>'}
+    </div>
+    <div class="hero-stats">
+      <div class="hs"><div class="hs-num">${execPct}%</div><div class="hs-lbl">Is week</div></div>
+      <div class="hs"><div class="hs-num ${disc>=85?'g':disc>=60?'a':'r'}">${disc}%</div><div class="hs-lbl">Discipline</div></div>
+      <div class="hs"><div class="hs-num">${dScore}</div><div class="hs-lbl">Aaj score</div></div>
+      <div class="hs"><div class="hs-num">${tHr>0?tHr+'h':''}${tMin}m</div><div class="hs-lbl">Aaj time</div></div>
+    </div>
+  </div>`;
+
+  // quick capture
+  html+=`<div class="home-capture">
+    <input id="homeCap" placeholder="💡 Kuch bhi dimag me? yahan daalo...">
+    <button class="mic" id="hMic" onclick="startVoice('hMic','homeCap','c')">🎤</button>
+    <button class="btn" onclick="homeCaptureGo()">+</button>
+  </div>`;
+
+  // missed alert
+  if(missedCount){
+    html+=`<div class="home-alert" onclick="switchTab('w12')">
+      🔴 <b>${missedCount} kaam pending</b> hain (miss ho gaye) — KRA down. Dekho →
+    </div>`;
+  }
+
+  // this week focus
+  if(weekTactics.length){
+    html+=`<div class="home-card">
+      <div class="hc-head">📌 Is hafte karna hai (Week ${cw})</div>
+      ${weekTactics.slice(0,5).map(t=>`<div class="hc-line">○ ${esc(t.title)}</div>`).join('')}
+      <button class="hc-link" onclick="switchTab('w12')">12-Week plan kholo →</button>
+    </div>`;
+  }
+
+  // today's schedule
+  html+=`<div class="home-card">
+    <div class="hc-head">☀️ Aaj ka kaam ${todayList.length?'('+todayList.length+')':''}</div>
+    ${todayList.length?todayList.slice(0,5).map(t=>`<div class="hc-line">○ ${esc(t)}</div>`).join(''):'<div class="hc-empty">Aaj ke liye kuch schedule nahi</div>'}
+    <button class="hc-link" onclick="switchTab('today')">Aaj ka scheduler →</button>
+  </div>`;
+
+  // quick nav tiles
+  html+=`<div class="home-tiles">
+    <div class="tile" onclick="switchTab('daily')"><span>📓</span>Daily Log</div>
+    <div class="tile" onclick="switchTab('w12')"><span>📅</span>12-Week</div>
+    <div class="tile" onclick="switchTab('dash')"><span>📊</span>Dashboard</div>
+    <div class="tile" onclick="switchTab('goals')"><span>🎯</span>Goals</div>
+  </div>`;
+
+  root.innerHTML=html;
+}
+
+async function homeCaptureGo(){
+  const v=document.getElementById('homeCap').value.trim();
+  if(!v){toast('Kuch likho');return}
+  await sb.from('plan_captures').insert({owner_id:ME.id,raw_text:v,status:'inbox'});
+  document.getElementById('homeCap').value='';toast('Inbox me daala 📥');
+}
+
+
 
 async function renderDaily(){
   const root=document.getElementById('view-daily');
