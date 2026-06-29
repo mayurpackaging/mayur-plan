@@ -336,6 +336,14 @@
   .ht-bar{flex:1;background:#eef1f5;border-radius:99px;height:8px;overflow:hidden}
   .ht-bar i{display:block;height:100%;border-radius:99px}
   .ht-min{flex:0 0 auto;font-size:12px;font-weight:600;color:var(--muted);min-width:50px;text-align:right}
+  .tlog-head{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;margin:14px 0 8px;letter-spacing:.4px}
+  .tlog-item{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-top:1px solid #f0f2f5}
+  .tlog-dot{flex:0 0 auto;width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px}
+  .tlog-body{flex:1;min-width:0}
+  .tlog-txt{font-size:13px;line-height:1.3}
+  .tlog-time{font-size:12px;color:var(--muted);margin-top:2px}
+  .tlog-note{font-size:12px;color:var(--txt);margin-top:3px;background:#f4f6f9;padding:5px 8px;border-radius:6px}
+  .timer-start{font-size:12px;color:var(--green);margin-top:3px}
   @media(max-width:420px){
     .hero-stats{gap:6px}.hs-num{font-size:18px}
     .home-tiles{grid-template-columns:repeat(2,1fr)}
@@ -1328,7 +1336,7 @@ async function loadHome(){
   let dScore=0;(dlogs||[]).forEach(l=>dScore+=CAT_WEIGHT[l.category]||1);
   dScore=Math.min(10,Math.round(dScore));
   // today's time
-  const {data:wl}=await sb.from('plan_worklog').select('minutes,category').eq('owner_id',ME.id).eq('log_date',today).not('minutes','is',null);
+  const {data:wl}=await sb.from('plan_worklog').select('minutes,category,clean_text,raw_text,started_at,ended_at').eq('owner_id',ME.id).eq('log_date',today).not('minutes','is',null).order('started_at');
   const totalMin=(wl||[]).reduce((a,b)=>a+(b.minutes||0),0);
   const tHr=Math.floor(totalMin/60),tMin=totalMin%60;
   // time by category
@@ -1404,6 +1412,18 @@ async function loadHome(){
           <div class="ht-lbl">${cat.e} ${c}</div>
           <div class="ht-bar"><i style="width:${pct}%;background:${cat.c}"></i></div>
           <div class="ht-min">${fmtT(m)}</div>
+        </div>`;
+      }).join('')}
+      <div class="tlog-head">Kaam (shuru → khatam)</div>
+      ${(wl||[]).map(l=>{
+        const cat=CATS[l.category]||CATS.Other;
+        const tm=ts=>ts?new Date(ts).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}):'—';
+        return `<div class="tlog-item">
+          <div class="tlog-dot" style="background:${cat.c}">${cat.e}</div>
+          <div class="tlog-body">
+            <div class="tlog-txt">${esc(l.clean_text||l.raw_text||'Kaam')}</div>
+            <div class="tlog-time">🕐 ${tm(l.started_at)} → ${tm(l.ended_at)} · <b>${fmtT(l.minutes)}</b></div>
+          </div>
         </div>`;
       }).join('')}
       <button class="hc-link" onclick="switchTab('daily')">Daily log →</button>
@@ -1520,10 +1540,12 @@ async function renderTimer(){
     const render=()=>{
       const mins=Math.floor((Date.now()-new Date(a.started_at))/60000);
       const hh=Math.floor(mins/60),mm=mins%60;
+      const startT=new Date(a.started_at).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
       box.innerHTML=`<div class="timer-on">
         <div class="timer-left">
           <div class="timer-run">⏱ Chal raha hai: ${hh>0?hh+'h ':''}${mm}m</div>
           <div class="timer-task">${esc(a.clean_text||a.raw_text||'Kaam')} ${a.category?`<span class="sc-chip" style="background:${(CATS[a.category]||CATS.Other).c}22;color:${(CATS[a.category]||CATS.Other).c}">${(CATS[a.category]||CATS.Other).e} ${a.category}</span>`:''}</div>
+          <div class="timer-start">🕐 Shuru: ${startT}</div>
         </div>
         <button class="btn green" onclick="stopWork('${a.id}')">✓ Khatam</button>
       </div>`;
@@ -1604,19 +1626,32 @@ async function confirmStop(id,mins){
 
 async function renderTimeSummary(d){
   const {data:logs}=await sb.from('plan_worklog').select('*')
-    .eq('owner_id',ME.id).eq('log_date',d).not('minutes','is',null);
+    .eq('owner_id',ME.id).eq('log_date',d).not('minutes','is',null).order('started_at');
   const el=document.getElementById('timeSummary');
   if(!logs||!logs.length){if(el)el.remove();return}
   const byCat={};let total=0;
   logs.forEach(l=>{const c=l.category||'Other';byCat[c]=(byCat[c]||0)+(l.minutes||0);total+=l.minutes||0;});
   const fmt=m=>{const h=Math.floor(m/60),mm=m%60;return (h>0?h+'h ':'')+mm+'m'};
+  const tm=ts=>ts?new Date(ts).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}):'—';
   let html=`<div class="time-sum" id="timeSummary"><div class="ts-head">⏱ Aaj productivity kahan gayi · total ${fmt(total)}</div>`;
   html+=Object.entries(byCat).sort((a,b)=>b[1]-a[1]).map(([c,m])=>{
     const cat=CATS[c]||CATS.Other;const pct=Math.round(m/total*100);
     return `<div class="ts-row"><div class="ts-lbl">${cat.e} ${c}</div><div class="ts-bar"><i style="width:${pct}%;background:${cat.c}"></i></div><div class="ts-min">${fmt(m)}</div></div>`;
   }).join('');
+  // detailed log: kaam + shuru + khatam + time
+  html+='<div class="tlog-head">Aaj ke kaam (shuru → khatam)</div>';
+  html+=logs.map(l=>{
+    const cat=CATS[l.category]||CATS.Other;
+    return `<div class="tlog-item">
+      <div class="tlog-dot" style="background:${cat.c}">${cat.e}</div>
+      <div class="tlog-body">
+        <div class="tlog-txt">${esc(l.clean_text||l.raw_text||'Kaam')}</div>
+        <div class="tlog-time">🕐 ${tm(l.started_at)} → ${tm(l.ended_at)} · <b>${fmt(l.minutes)}</b></div>
+        ${l.notes?`<div class="tlog-note">📝 ${esc(l.notes)}</div>`:''}
+      </div>
+    </div>`;
+  }).join('');
   html+='</div>';
-  // insert after score area / into list top
   const existing=document.getElementById('timeSummary');
   if(existing){existing.outerHTML=html;}
   else{const list=document.getElementById('dailyList');if(list)list.insertAdjacentHTML('beforebegin',html);}
