@@ -1428,7 +1428,8 @@ async function homeCaptureGo(){
   document.getElementById('homeCap').value='';toast('Inbox me daala 📥');
 }
 
-
+let DAILY_VIEW_DATE=null;
+function loadDaily(){DAILY_VIEW_DATE=todayStr();renderDaily()}
 
 async function renderDaily(){
   const root=document.getElementById('view-daily');
