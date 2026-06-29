@@ -331,6 +331,11 @@
     text-align:center;font-size:12px;font-weight:600;color:var(--txt);cursor:pointer;transition:.15s}
   .tile:active{transform:scale(.96)}
   .tile span{display:block;font-size:22px;margin-bottom:5px}
+  .ht-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+  .ht-lbl{flex:0 0 120px;font-size:13px}
+  .ht-bar{flex:1;background:#eef1f5;border-radius:99px;height:8px;overflow:hidden}
+  .ht-bar i{display:block;height:100%;border-radius:99px}
+  .ht-min{flex:0 0 auto;font-size:12px;font-weight:600;color:var(--muted);min-width:50px;text-align:right}
   @media(max-width:420px){
     .hero-stats{gap:6px}.hs-num{font-size:18px}
     .home-tiles{grid-template-columns:repeat(2,1fr)}
@@ -1320,9 +1325,12 @@ async function loadHome(){
   let dScore=0;(dlogs||[]).forEach(l=>dScore+=CAT_WEIGHT[l.category]||1);
   dScore=Math.min(10,Math.round(dScore));
   // today's time
-  const {data:wl}=await sb.from('plan_worklog').select('minutes').eq('owner_id',ME.id).eq('log_date',today).not('minutes','is',null);
+  const {data:wl}=await sb.from('plan_worklog').select('minutes,category').eq('owner_id',ME.id).eq('log_date',today).not('minutes','is',null);
   const totalMin=(wl||[]).reduce((a,b)=>a+(b.minutes||0),0);
   const tHr=Math.floor(totalMin/60),tMin=totalMin%60;
+  // time by category
+  const timeByCat={};
+  (wl||[]).forEach(w=>{const c=w.category||'Other';timeByCat[c]=(timeByCat[c]||0)+(w.minutes||0)});
   // today's scheduled (steps + tactics)
   const {data:tsteps}=await sb.from('plan_steps').select('id,title,is_done').or('pinned_today.eq.true,scheduled_date.eq.'+today+',due_date.eq.'+today);
   const {data:ttacs}=await sb.from('plan_tactics').select('id,title').eq('scheduled_date',today);
@@ -1380,6 +1388,24 @@ async function loadHome(){
     ${todayList.length?todayList.slice(0,5).map(t=>`<div class="hc-line">○ ${esc(t)}</div>`).join(''):'<div class="hc-empty">Aaj ke liye kuch schedule nahi</div>'}
     <button class="hc-link" onclick="switchTab('today')">Aaj ka scheduler →</button>
   </div>`;
+
+  // time breakdown card (aaj productivity kahan gayi)
+  if(totalMin>0){
+    const sorted=Object.entries(timeByCat).sort((a,b)=>b[1]-a[1]);
+    const fmtT=m=>{const h=Math.floor(m/60),mm=m%60;return (h>0?h+'h ':'')+mm+'m'};
+    html+=`<div class="home-card">
+      <div class="hc-head">⏱ Aaj productivity kahan gayi · ${fmtT(totalMin)}</div>
+      ${sorted.map(([c,m])=>{
+        const cat=CATS[c]||CATS.Other;const pct=Math.round(m/totalMin*100);
+        return `<div class="ht-row">
+          <div class="ht-lbl">${cat.e} ${c}</div>
+          <div class="ht-bar"><i style="width:${pct}%;background:${cat.c}"></i></div>
+          <div class="ht-min">${fmtT(m)}</div>
+        </div>`;
+      }).join('')}
+      <button class="hc-link" onclick="switchTab('daily')">Daily log →</button>
+    </div>`;
+  }
 
   // quick nav tiles
   html+=`<div class="home-tiles">
