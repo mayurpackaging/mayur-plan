@@ -165,6 +165,12 @@
   .mini-edit:hover{opacity:1}
   .cycle-sel{display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap}
   .cycle-sel select{flex:1;min-width:180px;font-size:14px;padding:9px 11px;font-weight:600;color:var(--navy)}
+  .note-hist-h{font-size:12px;color:var(--muted);font-weight:600;margin-bottom:8px;text-transform:uppercase}
+  .note-item{background:var(--surface-2,#f4f6f9);border:1px solid var(--line);border-radius:9px;padding:10px 12px;margin-bottom:8px}
+  .note-txt{font-size:14px;line-height:1.4}
+  .note-meta{font-size:11px;color:var(--muted);margin-top:5px;display:flex;justify-content:space-between;align-items:center}
+  .note-del{background:none;border:none;color:#cbd2db;cursor:pointer;font-size:13px}
+  .note-del:hover{color:var(--red)}
   .ai-tac{display:flex;align-items:center;gap:10px;justify-content:space-between;
     background:var(--surface-2,#f4f6f9);border:1px solid var(--line);border-radius:9px;padding:9px 11px;margin-bottom:7px}
   .ai-tac span{font-size:13px;flex:1}
@@ -868,7 +874,7 @@ async function loadW12(){
       // each tactic row
       for(const t of gTactics){
         const fw=t.focus_week?` <span class="fw-badge ${t.focus_week===curWeek?'fw-now':''}">W${t.focus_week}</span>`:'';
-        html+=`<div class="wk-grid"><div class="wk-tactic">${esc(t.title)}${fw}${t.assigned_name?`<span class="who-chip sm">👤 ${esc(t.assigned_name)}</span>`:''} <button class="mini-edit" onclick="editTactic('${t.id}','${esc(t.title).replace(/'/g,"\\'")}',${t.focus_week||0})" title="Edit">✏️</button><button class="mini-edit" onclick="delTactic('${t.id}')" title="Delete">🗑</button></div><div class="wk-cells">`;
+        html+=`<div class="wk-grid"><div class="wk-tactic">${esc(t.title)}${fw}${t.assigned_name?`<span class="who-chip sm">👤 ${esc(t.assigned_name)}</span>`:''} <button class="mini-edit" onclick="openNotes('tactic','${t.id}','${esc(t.title).replace(/'/g,"\\'")}')" title="Notes/Meeting">📝</button><button class="mini-edit" onclick="editTactic('${t.id}','${esc(t.title).replace(/'/g,"\\'")}',${t.focus_week||0})" title="Edit">✏️</button><button class="mini-edit" onclick="delTactic('${t.id}')" title="Delete">🗑</button></div><div class="wk-cells">`;
         for(let w=1;w<=12;w++){
           const cell=weekly.find(x=>x.tactic_id===t.id&&x.week_no===w);
           const done=cell&&cell.done;
@@ -988,6 +994,61 @@ async function delTactic(id){
   if(!confirm('Ye tactic delete ho jayegi. Pakka?'))return;
   await sb.from('plan_tactics').delete().eq('id',id);
   toast('Tactic delete');loadW12();
+}
+
+// ====== NOTES / MEETING LOG (har tactic/step) ======
+async function openNotes(ptype,pid,ptitle){
+  document.getElementById('modalRoot').innerHTML=`
+    <div class="modal-bg" onclick="if(event.target===this)closeModal()">
+      <div class="modal">
+        <h3>📝 ${esc(ptitle)}</h3>
+        <p style="font-size:13px;color:var(--muted);margin-bottom:10px">Meeting / progress note — kya hua, kisse mile</p>
+        <div class="field">
+          <textarea id="noteText" placeholder="jaise: Rahul + Vipul se call, ROFR pe agree, non-compete pending"></textarea>
+          <button class="mic sm" id="noteMic" onclick="startVoice('noteMic','noteText','d')" style="margin-top:6px">🎤 Bolke likho</button>
+        </div>
+        <div class="field">
+          <input id="noteWith" placeholder="Kisse mile? (optional) jaise Rahul, lawyer">
+        </div>
+        <div class="modal-actions">
+          <button class="btn gray" onclick="closeModal()">Band karo</button>
+          <button class="btn" onclick="addNote('${ptype}','${pid}')">+ Note add karo</button>
+        </div>
+        <div id="noteHistory" style="margin-top:14px"><div class="empty" style="padding:14px">Loading...</div></div>
+      </div>
+    </div>`;
+  loadNotes(ptype,pid);
+}
+
+async function loadNotes(ptype,pid){
+  const {data,error}=await sb.from('plan_notes').select('*')
+    .eq('parent_type',ptype).eq('parent_id',pid).order('created_at',{ascending:false});
+  const el=document.getElementById('noteHistory');
+  if(!el)return;
+  if(error){el.innerHTML='<div class="empty" style="padding:14px">Error</div>';return}
+  if(!data||!data.length){el.innerHTML='<div class="empty" style="padding:14px">Abhi koi note nahi. Upar se add karo.</div>';return}
+  el.innerHTML='<div class="note-hist-h">History</div>'+data.map(n=>{
+    const dt=new Date(n.created_at).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+    return `<div class="note-item">
+      <div class="note-txt">${esc(n.note)}</div>
+      <div class="note-meta">${dt}${n.met_with?' · 👤 '+esc(n.met_with):''} <button class="note-del" onclick="delNote('${n.id}','${ptype}','${pid}')">✕</button></div>
+    </div>`;
+  }).join('');
+}
+
+async function addNote(ptype,pid){
+  const note=document.getElementById('noteText').value.trim();
+  if(!note){toast('Kuch likho');return}
+  const met=document.getElementById('noteWith').value.trim()||null;
+  await sb.from('plan_notes').insert({owner_id:ME.id,parent_type:ptype,parent_id:pid,note,met_with:met});
+  document.getElementById('noteText').value='';
+  document.getElementById('noteWith').value='';
+  toast('Note save 📝');loadNotes(ptype,pid);
+}
+
+async function delNote(id,ptype,pid){
+  await sb.from('plan_notes').delete().eq('id',id);
+  loadNotes(ptype,pid);
 }
 async function toggleWeek(tacticId,week,wasDone){
   const newDone=!wasDone;
