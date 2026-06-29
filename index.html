@@ -193,6 +193,22 @@
   .dlog-meta{font-size:12px;color:var(--muted);margin-top:3px}
   .dlog-del{flex:0 0 auto;background:none;border:none;color:#cbd2db;font-size:15px;cursor:pointer;padding:2px 4px}
   .dlog-del:hover{color:var(--red)}
+  /* Time tracking */
+  .timer-off{background:var(--card);border:1px dashed var(--navy);border-radius:12px;padding:13px}
+  .timer-off input{width:100%}
+  .timer-on{background:#e6f4ec;border:1px solid var(--green);border-radius:12px;padding:13px 15px;
+    display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+  .timer-run{font-size:15px;font-weight:700;color:var(--green)}
+  .timer-task{font-size:13px;color:var(--txt);margin-top:3px}
+  .timer-on .btn{flex:0 0 auto}
+  .time-sum{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:14px}
+  .ts-head{font-size:13px;font-weight:700;color:var(--navy);margin-bottom:10px}
+  .ts-row{display:flex;align-items:center;gap:10px;margin-bottom:7px}
+  .ts-lbl{flex:0 0 130px;font-size:13px}
+  .ts-bar{flex:1;background:#eef1f5;border-radius:99px;height:8px;overflow:hidden}
+  .ts-bar i{display:block;height:100%;border-radius:99px}
+  .ts-min{flex:0 0 auto;font-size:12px;font-weight:600;color:var(--muted);min-width:48px;text-align:right}
+  .mic.sm{width:auto;padding:6px 12px;font-size:13px;display:inline-block}
   .btn.green{background:var(--green)}
 
   /* Goal hierarchy */
@@ -1030,6 +1046,7 @@ async function renderDaily(){
         <button class="btn" id="dLogBtn" onclick="addDaily()">Log karo</button>
       </div>
     </div>`;
+    html+='<div id="timerBox"></div>';
   }
 
   // date nav
@@ -1081,7 +1098,132 @@ async function renderDaily(){
   }).join('');
 
   listEl.innerHTML=s;
+
+  // time tracking summary + timer
+  renderTimeSummary(d);
+  if(isToday)renderTimer();
 }
+
+// ====== TIME TRACKING ======
+let TIMER_INT=null;
+async function renderTimer(){
+  const box=document.getElementById('timerBox');
+  if(!box)return;
+  // koi active kaam (started but not ended)?
+  const {data:active}=await sb.from('plan_worklog').select('*')
+    .eq('owner_id',ME.id).is('ended_at',null).order('started_at',{ascending:false}).limit(1);
+  if(TIMER_INT){clearInterval(TIMER_INT);TIMER_INT=null;}
+
+  if(active&&active.length){
+    const a=active[0];
+    const render=()=>{
+      const mins=Math.floor((Date.now()-new Date(a.started_at))/60000);
+      const hh=Math.floor(mins/60),mm=mins%60;
+      box.innerHTML=`<div class="timer-on">
+        <div class="timer-left">
+          <div class="timer-run">⏱ Chal raha hai: ${hh>0?hh+'h ':''}${mm}m</div>
+          <div class="timer-task">${esc(a.clean_text||a.raw_text||'Kaam')} ${a.category?`<span class="sc-chip" style="background:${(CATS[a.category]||CATS.Other).c}22;color:${(CATS[a.category]||CATS.Other).c}">${(CATS[a.category]||CATS.Other).e} ${a.category}</span>`:''}</div>
+        </div>
+        <button class="btn green" onclick="stopWork('${a.id}')">✓ Khatam</button>
+      </div>`;
+    };
+    render();TIMER_INT=setInterval(render,30000);
+  }else{
+    box.innerHTML=`<div class="timer-off">
+      <input id="workText" placeholder="🎤 Kaam start: jaise 'JV papers study' ya 'accounts ka kaam'">
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <button class="mic" id="wMicBtn" onclick="toggleWorkMic()">🎤</button>
+        <button class="btn" onclick="startWork()">⏱ Kaam start karo</button>
+      </div>
+    </div>`;
+  }
+}
+
+async function startWork(){
+  const txt=document.getElementById('workText').value.trim();
+  if(!txt){toast('Kya kaam? likho ya bolo');return}
+  // AI se category + goal guess
+  let category='Other',clean=txt,wgoal_id=null;
+  try{
+    const r=await fetch('/api/ai-steps',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({idea:txt,mode:'daily'})});
+    const j=await r.json();
+    if(j.category)category=j.category;
+    if(j.clean)clean=j.clean;
+  }catch(e){}
+  // goal guess: active cycle ke goals me se category match
+  try{
+    const {data:cyc}=await sb.from('plan_cycles').select('id').eq('status','active').limit(1);
+    if(cyc&&cyc.length){
+      const {data:gs}=await sb.from('plan_wgoals').select('id,title').eq('cycle_id',cyc[0].id);
+      if(gs){const m=gs.find(g=>g.title.toLowerCase().includes(category.toLowerCase())||
+        (category==='JV / Investor'&&g.title.toLowerCase().includes('jv'))||
+        (category==='Expansion'&&(g.title.toLowerCase().includes('capacity')||g.title.toLowerCase().includes('machine'))));
+        if(m)wgoal_id=m.id;}
+    }
+  }catch(e){}
+  await sb.from('plan_worklog').insert({owner_id:ME.id,raw_text:txt,clean_text:clean,category,wgoal_id,started_at:new Date().toISOString(),log_date:todayStr()});
+  toast('Kaam start ⏱');renderTimer();
+}
+
+async function stopWork(id){
+  const {data:w}=await sb.from('plan_worklog').select('*').eq('id',id).single();
+  const mins=Math.max(1,Math.round((Date.now()-new Date(w.started_at))/60000));
+  openStopModal(id,mins,w);
+}
+
+function openStopModal(id,mins,w){
+  document.getElementById('modalRoot').innerHTML=`
+    <div class="modal-bg" onclick="if(event.target===this)closeModal()">
+      <div class="modal">
+        <h3>Kaam khatam — ${mins} min laga</h3>
+        <div class="field">
+          <label>Notes — kya hua / kya pending (optional)</label>
+          <textarea id="stopNotes" placeholder="jaise: governance clause final, ROFR pending, lawyer ko bheja"></textarea>
+          <button class="mic sm" id="snMic" onclick="toggleStopMic()" style="margin-top:6px">🎤 Bolke likho</button>
+        </div>
+        <div class="field">
+          <label>Category</label>
+          <select id="stopCat">${Object.keys(CATS).map(c=>`<option ${w.category===c?'selected':''}>${c}</option>`).join('')}</select>
+        </div>
+        <div class="modal-actions">
+          <button class="btn gray" onclick="closeModal()">Cancel</button>
+          <button class="btn green" onclick="confirmStop('${id}',${mins})">Save</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+async function confirmStop(id,mins){
+  const notes=document.getElementById('stopNotes').value.trim()||null;
+  const cat=document.getElementById('stopCat').value;
+  await sb.from('plan_worklog').update({ended_at:new Date().toISOString(),minutes:mins,notes,category:cat}).eq('id',id);
+  closeModal();toast(`${mins} min logged ✓`);renderTimer();renderTimeSummary(todayStr());
+}
+
+async function renderTimeSummary(d){
+  const {data:logs}=await sb.from('plan_worklog').select('*')
+    .eq('owner_id',ME.id).eq('log_date',d).not('minutes','is',null);
+  const el=document.getElementById('timeSummary');
+  if(!logs||!logs.length){if(el)el.remove();return}
+  const byCat={};let total=0;
+  logs.forEach(l=>{const c=l.category||'Other';byCat[c]=(byCat[c]||0)+(l.minutes||0);total+=l.minutes||0;});
+  const fmt=m=>{const h=Math.floor(m/60),mm=m%60;return (h>0?h+'h ':'')+mm+'m'};
+  let html=`<div class="time-sum" id="timeSummary"><div class="ts-head">⏱ Aaj productivity kahan gayi · total ${fmt(total)}</div>`;
+  html+=Object.entries(byCat).sort((a,b)=>b[1]-a[1]).map(([c,m])=>{
+    const cat=CATS[c]||CATS.Other;const pct=Math.round(m/total*100);
+    return `<div class="ts-row"><div class="ts-lbl">${cat.e} ${c}</div><div class="ts-bar"><i style="width:${pct}%;background:${cat.c}"></i></div><div class="ts-min">${fmt(m)}</div></div>`;
+  }).join('');
+  html+='</div>';
+  // insert after score area / into list top
+  const existing=document.getElementById('timeSummary');
+  if(existing){existing.outerHTML=html;}
+  else{const list=document.getElementById('dailyList');if(list)list.insertAdjacentHTML('beforebegin',html);}
+}
+
+// work + stop voice mics
+function toggleWorkMic(){startVoice('wMicBtn','workText','c')}
+function toggleStopMic(){startVoice('snMic','stopNotes','d')}
 
 function shiftDaily(dir){
   const d=new Date(DAILY_VIEW_DATE);d.setDate(d.getDate()+dir);
