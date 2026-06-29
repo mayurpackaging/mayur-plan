@@ -1021,11 +1021,11 @@ async function loadParked(){
 // ====== DAILY LOG (voice + AI category) ======
 const CATS={
   'Sales':{e:'📞',c:'#2563eb'},'Order':{e:'📦',c:'#157347'},'Accounts':{e:'💰',c:'#9a6700'},
-  'Development':{e:'💻',c:'#7c3aed'},'Expansion':{e:'🏭',c:'#b42318'},
+  'Development':{e:'💻',c:'#7c3aed'},'Expansion':{e:'🏭',c:'#b42318'},'JV':{e:'🤝',c:'#0d9488'},
   'Operations':{e:'⚙️',c:'#0e7490'},'Other':{e:'📝',c:'#6b7686'}
 };
-// score weights (sales/order/expansion = bigger value moves)
-const CAT_WEIGHT={'Sales':2,'Order':3,'Expansion':3,'Accounts':1.5,'Development':2,'Operations':1.5,'Other':1};
+// score weights (sales/order/JV/expansion = bigger value moves)
+const CAT_WEIGHT={'Sales':2,'Order':3,'Expansion':3,'JV':3,'Accounts':1.5,'Development':2,'Operations':1.5,'Other':1};
 
 let DAILY_VIEW_DATE=null;
 function loadDaily(){DAILY_VIEW_DATE=todayStr();renderDaily()}
