@@ -344,6 +344,26 @@
   .tlog-time{font-size:12px;color:var(--muted);margin-top:2px}
   .tlog-note{font-size:12px;color:var(--txt);margin-top:3px;background:#f4f6f9;padding:5px 8px;border-radius:6px}
   .timer-start{font-size:12px;color:var(--green);margin-top:3px}
+
+  /* Vision board (hand-drawn) */
+  .vision-sheet{background:#fbf8f0;background-image:radial-gradient(#e8e2d0 1px,transparent 1px);
+    background-size:18px 18px;border:2px solid #1F4E79;border-radius:16px;padding:20px 14px}
+  .vsheet-title{text-align:center;font-family:Georgia,serif;font-size:21px;color:#33475b;font-style:italic;font-weight:700}
+  .vsheet-sub{text-align:center;font-size:12px;color:#8a7a55;margin:4px 0 12px}
+  .vsheet-prog{height:8px;background:#e8e2d0;border-radius:99px;overflow:hidden;margin-bottom:18px}
+  .vsheet-prog i{display:block;height:100%;background:#157347;border-radius:99px;transition:width .4s}
+  .vstep{display:flex;gap:12px;align-items:center;background:rgba(255,255,255,.6);border:1.5px solid #d8d0ba;
+    border-radius:12px;padding:8px 12px;cursor:pointer;transition:.15s}
+  .vstep:active{transform:scale(.98)}
+  .vstep.vdone{background:#edf7f0;border-color:#157347}
+  .vstep-draw{flex:0 0 auto}
+  .vstep-info{flex:1;min-width:0}
+  .vstep-num{font-size:11px;font-weight:700;color:#9a6700;letter-spacing:.5px}
+  .vstep.vdone .vstep-num{color:#157347}
+  .vstep-label{font-size:16px;font-weight:700;color:#33475b;font-family:Georgia,serif}
+  .vstep-sub{font-size:12px;color:#8a7a55;margin-top:1px}
+  .vdots{text-align:center;color:#c5b58f;font-size:18px;line-height:1;margin:2px 0}
+  .vsheet-quote{text-align:center;margin-top:16px;font-size:13px;color:#8a7a55;font-style:italic;font-family:Georgia,serif}
   @media(max-width:420px){
     .hero-stats{gap:6px}.hs-num{font-size:18px}
     .home-tiles{grid-template-columns:repeat(2,1fr)}
@@ -395,6 +415,7 @@
     <!-- Tabs -->
     <div class="tabs">
       <div class="tab on" data-tab="home" onclick="switchTab('home')">🏠 Home</div>
+      <div class="tab" data-tab="vision" onclick="switchTab('vision')">🎯 Vision</div>
       <div class="tab" data-tab="daily" onclick="switchTab('daily')">📓 Daily</div>
       <div class="tab" data-tab="today" onclick="switchTab('today')">☀️ Aaj</div>
       <div class="tab" data-tab="dash" onclick="switchTab('dash')">📊 Dashboard</div>
@@ -405,6 +426,7 @@
     </div>
 
     <div id="view-home"></div>
+    <div id="view-vision" class="hide"></div>
     <div id="view-daily" class="hide"></div>
     <div id="view-today" class="hide"></div>
     <div id="view-dash" class="hide"></div>
@@ -471,10 +493,11 @@ async function initApp(){
 // ====== TABS ======
 function switchTab(t){
   document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x.dataset.tab===t));
-  ['home','daily','today','dash','w12','inbox','goals','parked'].forEach(v=>{
+  ['home','vision','daily','today','dash','w12','inbox','goals','parked'].forEach(v=>{
     document.getElementById('view-'+v).classList.toggle('hide',v!==t);
   });
   if(t==='home')loadHome();
+  if(t==='vision')loadVision();
   if(t==='daily')loadDaily();
   if(t==='today')loadToday();
   if(t==='dash')loadDash();
@@ -1446,6 +1469,73 @@ async function homeCaptureGo(){
   if(!v){toast('Kuch likho');return}
   await sb.from('plan_captures').insert({owner_id:ME.id,raw_text:v,status:'inbox'});
   document.getElementById('homeCap').value='';toast('Inbox me daala 📥');
+}
+
+// ====== VISION BOARD (hand-drawn sketch) ======
+const VISION_STEPS=[
+  {key:'jv',label:'Joint Venture',sub:'Terms set · shares · capital aaye',draw:'jv'},
+  {key:'land',label:'Haryana Land',sub:'Payment · registry · mutation',draw:'land'},
+  {key:'clu',label:'CLU Approval',sub:'Land use change · ~4 mahine',draw:'clu'},
+  {key:'building',label:'Building',sub:'Civil · HT line · lift · 2-story',draw:'building'},
+  {key:'machines',label:'14 Machines',sub:'Phase 4→4→6 · capacity 3x',draw:'machine'},
+  {key:'goal',label:'₹100 Crore+',sub:'Premium packaging leader',draw:'goal'}
+];
+
+function visionDraw(type,done){
+  const ink=done?'#157347':'#2b3a4a';
+  const accent=done?'#157347':'#d99a2b';
+  const f='filter="url(#vrough)"';
+  if(type==='jv')return `<svg width="100" height="92" viewBox="0 0 120 110"><g ${f} fill="none" stroke="${ink}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14 78 C30 70 40 64 52 60"/><path d="M106 78 C90 70 80 64 68 60"/><path d="M52 60 C56 54 64 54 68 60 C70 64 66 70 60 70 C55 70 50 66 52 60 Z"/><path d="M55 62 L60 66 M60 60 L64 64"/><path d="M12 80 C16 74 22 76 24 82"/><path d="M108 80 C104 74 98 76 96 82"/><path d="M60 44 L60 36 M52 48 L47 43 M68 48 L73 43" stroke="${accent}"/></g></svg>`;
+  if(type==='land')return `<svg width="100" height="92" viewBox="0 0 120 110"><g ${f} fill="none" stroke="${ink}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 76 C40 70 80 72 108 74"/><path d="M22 80 C40 76 70 77 96 79" stroke="#5a7a4a"/><path d="M30 76 L30 66 M30 70 L26 67 M30 70 L34 67" stroke="#5a7a4a"/><path d="M46 77 L46 67 M46 71 L42 68 M46 71 L50 68" stroke="#5a7a4a"/><path d="M64 77 L64 67 M64 71 L60 68 M64 71 L68 68" stroke="#5a7a4a"/><circle cx="92" cy="28" r="10" stroke="${accent}"/><path d="M92 12 L92 6 M108 28 L114 28 M104 16 L108 12" stroke="${accent}"/><path d="M14 76 L14 64 M14 68 L24 66"/></g></svg>`;
+  if(type==='clu')return `<svg width="100" height="92" viewBox="0 0 120 110"><g ${f} fill="none" stroke="${ink}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="34" y="18" width="50" height="64" rx="3"/><path d="M44 34 L74 34 M44 46 L74 46 M44 58 L66 58"/><circle cx="74" cy="68" r="13" fill="#fbf8f0" stroke="${accent}"/><path d="M68 68 L73 73 L81 62" stroke="${accent}" stroke-width="2.6"/></g></svg>`;
+  if(type==='building')return `<svg width="100" height="92" viewBox="0 0 120 110"><g ${f} fill="none" stroke="${ink}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14 86 L106 86" stroke="${accent}"/><rect x="28" y="44" width="64" height="42"/><path d="M28 64 L92 64"/><path d="M24 44 L60 22 L96 44"/><rect x="38" y="70" width="13" height="16"/><rect x="68" y="50" width="14" height="9"/><path d="M98 18 L98 38 M92 24 L98 18 L104 24"/></g></svg>`;
+  if(type==='machine')return `<svg width="100" height="92" viewBox="0 0 120 110"><g ${f} fill="none" stroke="${ink}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="18" y="40" width="46" height="38" rx="3"/><rect x="68" y="50" width="28" height="28" rx="3"/><circle cx="41" cy="59" r="10" stroke="${accent}"/><circle cx="41" cy="59" r="3" fill="${accent}" stroke="none"/><path d="M18 78 L96 78" stroke="${accent}"/><path d="M30 40 L30 28 L56 28"/></g></svg>`;
+  if(type==='goal')return `<svg width="100" height="92" viewBox="0 0 120 110"><g ${f} fill="none" stroke="${done?'#157347':'#1F4E79'}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M44 20 L44 86"/><path d="M44 20 C58 16 70 30 86 24 C84 36 88 44 86 50 C70 56 58 42 44 46 Z" fill="${done?'#157347':'#f5c262'}" stroke="${done?'#157347':'#d99a2b'}"/></g></svg>`;
+  return '';
+}
+
+async function loadVision(){
+  const root=document.getElementById('view-vision');
+  root.innerHTML='<div class="empty">Loading...</div>';
+  let done={};
+  try{const {data}=await sb.from('plan_vision').select('*');(data||[]).forEach(r=>done[r.step_key]=r.done);}catch(e){}
+  const doneCount=VISION_STEPS.filter(s=>done[s.key]).length;
+  const pct=Math.round(doneCount/VISION_STEPS.length*100);
+
+  let html=`<svg width="0" height="0"><defs>
+    <filter id="vrough"><feTurbulence type="fractalNoise" baseFrequency="0.016" numOctaves="2" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.6"/></filter>
+  </defs></svg>`;
+
+  html+=`<div class="vision-sheet">
+    <div class="vsheet-title">— Shreeja ka Safar —</div>
+    <div class="vsheet-sub">₹36 Cr → ₹100 Cr · ${doneCount}/${VISION_STEPS.length} steps (${pct}%)</div>
+    <div class="vsheet-prog"><i style="width:${pct}%"></i></div>`;
+
+  VISION_STEPS.forEach((s,i)=>{
+    const isDone=done[s.key];
+    html+=`<div class="vstep ${isDone?'vdone':''}" onclick="toggleVision('${s.key}',${isDone?'true':'false'})">
+      <div class="vstep-draw">${visionDraw(s.draw,isDone)}</div>
+      <div class="vstep-info">
+        <div class="vstep-num">${isDone?'✓ DONE':'STEP '+(i+1)}</div>
+        <div class="vstep-label">${s.label}</div>
+        <div class="vstep-sub">${s.sub}</div>
+      </div>
+    </div>`;
+    if(i<VISION_STEPS.length-1)html+='<div class="vdots">┊</div>';
+  });
+
+  html+=`<div class="vsheet-quote">"Customer product nahi kharidta, customer trust kharidta hai"</div>
+  </div>`;
+  root.innerHTML=html;
+}
+
+async function toggleVision(key,wasDone){
+  const nd=!wasDone;
+  try{
+    await sb.from('plan_vision').upsert({step_key:key,done:nd,updated_at:new Date().toISOString()},{onConflict:'step_key'});
+    toast(nd?'Step complete! 🎉':'Unmark');
+  }catch(e){toast('Error: '+e.message)}
+  loadVision();
 }
 
 let DAILY_VIEW_DATE=null;
