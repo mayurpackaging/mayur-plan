@@ -153,6 +153,14 @@
   .wk-cell.wk-done{background:var(--green);border-color:var(--green)}
   .wk-cell.wk-cur{border-color:var(--navy);border-width:2px}
   .wk-cell:not(.wk-done):hover{background:#eef1f5}
+  .fw-badge{display:inline-block;background:#eef1f5;color:var(--muted);font-size:9px;font-weight:700;
+    padding:1px 5px;border-radius:4px;margin-left:4px}
+  .fw-badge.fw-now{background:var(--navy);color:#fff}
+  .week-focus{background:#fff7e6;border:1px solid #ffd98a;border-radius:12px;padding:13px 15px;margin-bottom:16px}
+  .wf-head{font-size:14px;font-weight:700;color:#9a6700;margin-bottom:9px}
+  .wf-item{display:flex;align-items:center;gap:9px;padding:5px 0;font-size:14px}
+  .wf-item input{width:18px;height:18px;accent-color:var(--green)}
+  .wf-item.wf-done span{text-decoration:line-through;color:var(--muted)}
   .ai-tac{display:flex;align-items:center;gap:10px;justify-content:space-between;
     background:var(--surface-2,#f4f6f9);border:1px solid var(--line);border-radius:9px;padding:9px 11px;margin-bottom:7px}
   .ai-tac span{font-size:13px;flex:1}
@@ -727,6 +735,13 @@ function weekOfCycle(startDate){
   const wk=Math.floor(days/7)+1;
   return Math.max(1,Math.min(12,wk));
 }
+function weekDateRange(startDate,weekNo){
+  const start=new Date(startDate);
+  const ws=new Date(start); ws.setDate(start.getDate()+(weekNo-1)*7);
+  const we=new Date(ws); we.setDate(ws.getDate()+6);
+  const f=d=>d.toLocaleDateString('en-IN',{day:'numeric',month:'short'});
+  return f(ws)+'–'+f(we);
+}
 
 async function loadW12(){
   const root=document.getElementById('view-w12');
@@ -743,6 +758,7 @@ async function loadW12(){
   }
   const cyc=cycles[0];
   const curWeek=weekOfCycle(cyc.start_date);
+  const wkRange=weekDateRange(cyc.start_date,curWeek);
 
   const {data:wgoals}=await sb.from('plan_wgoals').select('*').eq('cycle_id',cyc.id).order('sort_order');
   const goalIds=(wgoals||[]).map(g=>g.id);
@@ -764,7 +780,7 @@ async function loadW12(){
 
   let html=`<div class="w12-head">
     <div class="w12-title">${esc(cyc.title)}</div>
-    <div class="w12-sub">Week ${curWeek} of 12 · shuru ${new Date(cyc.start_date).toLocaleDateString('en-IN')}</div>
+    <div class="w12-sub">Week ${curWeek} of 12 · ${wkRange} · shuru ${new Date(cyc.start_date).toLocaleDateString('en-IN')}</div>
   </div>`;
 
   // 85% execution meter
@@ -778,6 +794,18 @@ async function loadW12(){
       <div class="exec-note">${rule85?'Discipline solid hai. Aise hi chalao.':'Discipline pe dhyaan do — goal mat badlo, execution badhao.'}</div>
     </div>
   </div>`;
+
+  // THIS WEEK focus banner — jo tactics is week pe focus hain
+  const thisWeekTactics=tactics.filter(t=>t.focus_week===curWeek);
+  if(thisWeekTactics.length){
+    html+=`<div class="week-focus">
+      <div class="wf-head">📌 Week ${curWeek} — is hafte ye karna hai (${wkRange})</div>
+      ${thisWeekTactics.map(t=>{
+        const done=weekly.find(x=>x.tactic_id===t.id&&x.week_no===curWeek&&x.done);
+        return `<label class="wf-item ${done?'wf-done':''}"><input type="checkbox" ${done?'checked':''} onchange="toggleWeek('${t.id}',${curWeek},${done?'true':'false'})"> <span>${esc(t.title)}</span></label>`;
+      }).join('')}
+    </div>`;
+  }
 
   if(!wgoals||!wgoals.length){
     html+='<div class="empty">Is cycle me abhi koi goal nahi.<br><button class="btn sm" onclick="newWGoal(\''+cyc.id+'\')">+ Goal add karo</button></div>';
@@ -802,7 +830,8 @@ async function loadW12(){
       html+='</div></div>';
       // each tactic row
       for(const t of gTactics){
-        html+=`<div class="wk-grid"><div class="wk-tactic">${esc(t.title)}${t.assigned_name?`<span class="who-chip sm">👤 ${esc(t.assigned_name)}</span>`:''}</div><div class="wk-cells">`;
+        const fw=t.focus_week?` <span class="fw-badge ${t.focus_week===curWeek?'fw-now':''}">W${t.focus_week}</span>`:'';
+        html+=`<div class="wk-grid"><div class="wk-tactic">${esc(t.title)}${fw}${t.assigned_name?`<span class="who-chip sm">👤 ${esc(t.assigned_name)}</span>`:''}</div><div class="wk-cells">`;
         for(let w=1;w<=12;w++){
           const cell=weekly.find(x=>x.tactic_id===t.id&&x.week_no===w);
           const done=cell&&cell.done;
