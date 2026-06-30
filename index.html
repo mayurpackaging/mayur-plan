@@ -433,6 +433,35 @@
   .br-green{border-left:3px solid #7ee0a6}
   .br-amber{border-left:3px solid #ffd98a}
   .br-red{border-left:3px solid #ff9b8f}
+
+  /* ===== CALENDAR ===== */
+  .cal-head{margin-bottom:14px}
+  .cal-nav{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+  .cal-arrow{background:var(--navy);color:#fff;font-size:18px;padding:6px 16px;border-radius:9px}
+  .cal-title{font-size:16px;font-weight:700;color:var(--navy);text-align:center;flex:1}
+  .cal-modes{display:flex;gap:6px;justify-content:center}
+  .cal-mode{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:7px 16px;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer}
+  .cal-mode.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+  .cal-day{display:flex;flex-direction:column;gap:6px}
+  .cal-slot{display:flex;gap:10px;align-items:flex-start;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:9px 12px}
+  .cal-slot.filled{border-color:var(--navy)}
+  .cal-time{flex:0 0 70px;font-size:12px;font-weight:700;color:var(--navy);padding-top:4px}
+  .cal-body{flex:1;display:flex;flex-direction:column;gap:5px}
+  .cal-task{font-size:14px;padding:6px 9px;border-radius:7px;background:#eef1f5;display:flex;justify-content:space-between;align-items:center}
+  .cal-task.t-cal{background:#fff0e0}
+  .cal-task.t-tactic{background:#e0f2f0}
+  .cal-add{background:none;border:1px dashed var(--line);border-radius:7px;color:var(--muted);font-size:12px;padding:5px;cursor:pointer}
+  .cal-add:hover{border-color:var(--navy);color:var(--navy)}
+  .cal-week{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+  .cal-wday{background:var(--card);border:1px solid var(--line);border-radius:8px;overflow:hidden;min-height:120px}
+  .cal-wday.cw-today{border-color:var(--navy);border-width:2px}
+  .cw-head{background:#eef1f5;padding:6px 2px;text-align:center;font-size:11px;color:var(--muted);cursor:pointer;line-height:1.3}
+  .cw-head b{font-size:15px;color:var(--navy)}
+  .cw-items{padding:4px;display:flex;flex-direction:column;gap:3px}
+  .cw-item{font-size:9px;padding:3px 4px;border-radius:4px;background:#eef1f5;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;line-height:1.2}
+  .cw-item.t-cal{background:#fff0e0}
+  .cw-item.t-tactic{background:#e0f2f0}
+  .cw-empty{font-size:11px;color:#ccc;text-align:center;padding:8px 0}
   @media(max-width:480px){
     .bc-mission{font-size:32px}.bc-title{font-size:24px}.bs-big{font-size:40px}
     .bp-num{font-size:30px}.bp-stat{padding:14px 12px}.bs-card{width:130px}
@@ -492,6 +521,7 @@
       <div class="tab" data-tab="board" onclick="switchTab('board')">📊 Board</div>
       <div class="tab" data-tab="daily" onclick="switchTab('daily')">📓 Daily</div>
       <div class="tab" data-tab="today" onclick="switchTab('today')">☀️ Aaj</div>
+      <div class="tab" data-tab="cal" onclick="switchTab('cal')">📆 Calendar</div>
       <div class="tab" data-tab="dash" onclick="switchTab('dash')">📊 Dashboard</div>
       <div class="tab" data-tab="w12" onclick="switchTab('w12')">📅 12-Week</div>
       <div class="tab" data-tab="inbox" onclick="switchTab('inbox')">📥 Inbox</div>
@@ -504,6 +534,7 @@
     <div id="view-board" class="hide"></div>
     <div id="view-daily" class="hide"></div>
     <div id="view-today" class="hide"></div>
+    <div id="view-cal" class="hide"></div>
     <div id="view-dash" class="hide"></div>
     <div id="view-w12" class="hide"></div>
     <div id="view-inbox" class="hide"></div>
@@ -568,7 +599,7 @@ async function initApp(){
 // ====== TABS ======
 function switchTab(t){
   document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x.dataset.tab===t));
-  ['home','vision','board','daily','today','dash','w12','inbox','goals','parked'].forEach(v=>{
+  ['home','vision','board','daily','today','cal','dash','w12','inbox','goals','parked'].forEach(v=>{
     document.getElementById('view-'+v).classList.toggle('hide',v!==t);
   });
   if(t==='home')loadHome();
@@ -576,6 +607,7 @@ function switchTab(t){
   if(t==='board')loadBoard();
   if(t==='daily')loadDaily();
   if(t==='today')loadToday();
+  if(t==='cal')loadCal();
   if(t==='dash')loadDash();
   if(t==='w12')loadW12();
   if(t==='inbox')loadInbox();
@@ -1832,6 +1864,113 @@ function renderBoardSlide(){
     </div>`;
 }
 
+
+// ====== CALENDAR (kisi bhi din ka slot) ======
+let CAL_DATE=null;
+let CAL_MODE='day';
+function loadCal(){ if(!CAL_DATE)CAL_DATE=todayStr(); renderCal(); }
+function shiftCal(dir){
+  const d=new Date(CAL_DATE);
+  d.setDate(d.getDate()+(CAL_MODE==='week'?dir*7:dir));
+  CAL_DATE=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  renderCal();
+}
+function calModeSet(m){CAL_MODE=m;renderCal();}
+
+async function renderCal(){
+  const root=document.getElementById('view-cal');
+  root.innerHTML='<div class="empty">Loading...</div>';
+  // is range ka data
+  let from,to;
+  if(CAL_MODE==='week'){
+    const d=new Date(CAL_DATE);const dow=(d.getDay()+6)%7; // Mon=0
+    const mon=new Date(d);mon.setDate(d.getDate()-dow);
+    from=isoD(mon); const sun=new Date(mon);sun.setDate(mon.getDate()+6);to=isoD(sun);
+  }else{from=CAL_DATE;to=CAL_DATE;}
+
+  // calendar bookings
+  const {data:cal}=await sb.from('plan_calendar').select('*').eq('owner_id',ME.id).gte('cal_date',from).lte('cal_date',to);
+  // goal steps scheduled in range
+  const {data:steps}=await sb.from('plan_steps').select('id,title,scheduled_date,time_slot,is_done').gte('scheduled_date',from).lte('scheduled_date',to);
+  // tactics scheduled
+  const {data:tacs}=await sb.from('plan_tactics').select('id,title,scheduled_date,time_slot').gte('scheduled_date',from).lte('scheduled_date',to);
+
+  const allItems=(dt)=>{
+    const items=[];
+    (cal||[]).filter(x=>x.cal_date===dt).forEach(x=>items.push({slot:x.time_slot,title:x.title,type:'cal',id:x.id,done:x.done}));
+    (steps||[]).filter(x=>x.scheduled_date===dt&&!x.is_done).forEach(x=>items.push({slot:x.time_slot,title:x.title,type:'step',id:x.id}));
+    (tacs||[]).filter(x=>x.scheduled_date===dt).forEach(x=>items.push({slot:x.time_slot,title:x.title,type:'tactic',id:x.id}));
+    return items;
+  };
+
+  let html=`<div class="cal-head">
+    <div class="cal-nav">
+      <button class="bbtn cal-arrow" onclick="shiftCal(-1)">‹</button>
+      <div class="cal-title">${calTitle(from,to)}</div>
+      <button class="bbtn cal-arrow" onclick="shiftCal(1)">›</button>
+    </div>
+    <div class="cal-modes">
+      <button class="cal-mode ${CAL_MODE==='day'?'on':''}" onclick="calModeSet('day')">Din</button>
+      <button class="cal-mode ${CAL_MODE==='week'?'on':''}" onclick="calModeSet('week')">Hafta</button>
+      <button class="cal-mode" onclick="CAL_DATE=todayStr();renderCal()">Aaj</button>
+    </div>
+  </div>`;
+
+  if(CAL_MODE==='day'){
+    html+=`<div class="cal-day">`;
+    for(const slot of SLOTS){
+      const items=allItems(CAL_DATE).filter(i=>i.slot===slot);
+      html+=`<div class="cal-slot ${items.length?'filled':''}">
+        <div class="cal-time">${slot}</div>
+        <div class="cal-body">
+          ${items.map(i=>`<div class="cal-task t-${i.type}">${i.type==='cal'?'📅':i.type==='tactic'?'🎯':'○'} ${esc(i.title)}${i.type==='cal'?` <button class="note-del" onclick="delCalItem('${i.id}')">✕</button>`:''}</div>`).join('')}
+          <button class="cal-add" onclick="addCalItem('${CAL_DATE}','${slot}')">+ kaam</button>
+        </div>
+      </div>`;
+    }
+    html+='</div>';
+  } else {
+    // week: 7 columns
+    const d=new Date(from);
+    html+='<div class="cal-week">';
+    for(let i=0;i<7;i++){
+      const day=new Date(d);day.setDate(d.getDate()+i);const ds=isoD(day);
+      const items=allItems(ds);
+      const isToday=ds===todayStr();
+      html+=`<div class="cal-wday ${isToday?'cw-today':''}">
+        <div class="cw-head" onclick="CAL_DATE='${ds}';CAL_MODE='day';renderCal()">
+          ${day.toLocaleDateString('en-IN',{weekday:'short'})}<br><b>${day.getDate()}</b>
+        </div>
+        <div class="cw-items">
+          ${items.length?items.map(i=>`<div class="cw-item t-${i.type}" title="${esc(i.title)}">${i.slot?i.slot.split('–')[0]+' ':''}${esc(i.title.slice(0,18))}</div>`).join(''):'<div class="cw-empty">—</div>'}
+        </div>
+      </div>`;
+    }
+    html+='</div>';
+  }
+  root.innerHTML=html;
+}
+
+function calTitle(from,to){
+  const f=d=>new Date(d).toLocaleDateString('en-IN',{day:'numeric',month:'short'});
+  if(from===to){
+    const d=new Date(from);
+    return d.toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'});
+  }
+  return f(from)+' – '+f(to);
+}
+function isoD(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+
+async function addCalItem(date,slot){
+  const title=prompt('Kya kaam/meeting? ('+slot+')');
+  if(!title||!title.trim())return;
+  await sb.from('plan_calendar').insert({owner_id:ME.id,cal_date:date,time_slot:slot,title:title.trim()});
+  toast('Slot book ho gaya 📅');renderCal();
+}
+async function delCalItem(id){
+  await sb.from('plan_calendar').delete().eq('id',id);
+  toast('Hata diya');renderCal();
+}
 
 let DAILY_VIEW_DATE=null;
 function loadDaily(){DAILY_VIEW_DATE=todayStr();renderDaily()}
