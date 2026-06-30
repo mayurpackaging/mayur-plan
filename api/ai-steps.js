@@ -33,6 +33,23 @@ Kaam: "${idea}"
 
 Sirf is JSON me jawab do (no markdown):
 {"category":"Accounts","clean":"<founder ki baat, bas thodi saaf>"}`;
+  } else if (mode === 'polish') {
+    expectJson = 'object';
+    prompt = `Tum ek business writer ho. Niche ek founder ne apna kaam ya meeting ka note bola/likha hai (Hinglish, kaccha). Isko 2 professional versions me likho — matlab same rakho, sirf saaf aur professional banao. Apni taraf se naya fact/info MAT jodo. Jo bola wahi, bas behtar shabdon me.
+
+Founder ki baat: "${idea}"
+
+Do versions banao:
+1. "english" — professional English me (jaise kisi business report/email me likhte hain)
+2. "hinglish" — professional Hinglish me (Hindi-English mix, par saaf aur business-like)
+
+Example:
+Input: "meeting hui, unhe samjhaya par unhone goodwill kam measure kiya, AI tool se nikala value bahut kam, term condition padh rahe hain"
+Output:
+{"english":"Meeting held with partners. Explained the valuation rationale; however, they assessed goodwill lower than expected. Their AI tool valued it significantly below our estimate. Currently reviewing terms & conditions.","hinglish":"Partners ke saath meeting hui. Valuation samjhaya, lekin unhone goodwill expected se kam measure kiya. Unke AI tool ne value humare estimate se kaafi kam nikali. Abhi terms & conditions review kar rahe hain."}
+
+Sirf is JSON me jawab do (no markdown):
+{"english":"...","hinglish":"..."}`;
   } else if (mode === 'tactics') {
     prompt = `Tum ek business coach ho jo "12 Week Year" framework jaanta hai. Niche ek 12-week goal diya hai (Hinglish me ho sakta hai). Iske liye 4-6 TACTICS banao.
 
