@@ -195,6 +195,7 @@
   .note-item{background:var(--surface-2,#f4f6f9);border:1px solid var(--line);border-radius:9px;padding:10px 12px;margin-bottom:8px}
   .note-txt{font-size:14px;line-height:1.4}
   .note-meta{font-size:11px;color:var(--muted);margin-top:5px;display:flex;justify-content:space-between;align-items:center}
+  .note-exp{font-size:12px;color:#9a6700;background:#fff7e6;padding:3px 8px;border-radius:6px;margin-top:5px;display:inline-block}
   .note-del{background:none;border:none;color:#cbd2db;cursor:pointer;font-size:13px}
   .note-del:hover{color:var(--red)}
   .ai-tac{display:flex;align-items:center;gap:10px;justify-content:space-between;
@@ -364,6 +365,78 @@
   .vstep-sub{font-size:12px;color:#8a7a55;margin-top:1px}
   .vdots{text-align:center;color:#c5b58f;font-size:18px;line-height:1;margin:2px 0}
   .vsheet-quote{text-align:center;margin-top:16px;font-size:13px;color:#8a7a55;font-style:italic;font-family:Georgia,serif}
+  /* AI polish */
+  .polish-load{font-size:13px;color:var(--muted);padding:10px 0;font-style:italic}
+  .polish-box{margin-top:10px;display:flex;flex-direction:column;gap:8px}
+  .polish-opt{background:#f4f8fc;border:1px solid #cfe0f0;border-radius:10px;padding:11px 13px;cursor:pointer;transition:.15s}
+  .polish-opt:active{transform:scale(.99)}
+  .polish-opt:hover{border-color:var(--navy);background:#eaf2fa}
+  .po-tag{font-size:11px;font-weight:700;color:var(--navy);margin-bottom:4px}
+  .po-txt{font-size:13px;line-height:1.45;color:var(--txt)}
+  .polish-hint{font-size:11px;color:var(--muted);text-align:center;font-style:italic}
+  .polish-done{font-size:13px;color:var(--green);font-weight:600;padding:8px 0}
+
+  /* ===== BOARD VIEW (presentation) ===== */
+  .board-wrap{background:#0d1f33;border-radius:16px;overflow:hidden;margin:-4px 0}
+  .board-bar{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:rgba(255,255,255,.06)}
+  .bbtn{background:rgba(255,255,255,.12);color:#fff;border:none;border-radius:8px;padding:7px 12px;font-size:13px;cursor:pointer}
+  .board-dots{display:flex;gap:6px}
+  .bdot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.25);cursor:pointer}
+  .bdot.on{background:#f5c262;width:20px;border-radius:4px}
+  .board-count{color:rgba(255,255,255,.7);font-size:13px;font-weight:600}
+  .board-stage{min-height:440px;display:flex;align-items:center;justify-content:center;padding:24px 20px}
+  .board-nav{display:flex;justify-content:space-between;padding:12px 14px;background:rgba(255,255,255,.06)}
+  .bnav{background:#1F4E79;color:#fff;border:none;border-radius:9px;padding:11px 20px;font-size:15px;font-weight:600;cursor:pointer}
+  .bnav:disabled{opacity:.3}
+  .bslide{width:100%;color:#fff;text-align:center;animation:bfade .3s}
+  @keyframes bfade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .bcover{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px}
+  .bc-logo{width:60px;height:60px;border-radius:14px;background:linear-gradient(135deg,#f5c262,#d99a2b);color:#1F4E79;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:22px;margin-bottom:12px}
+  .bc-title{font-size:30px;font-weight:800;letter-spacing:.5px;line-height:1.2}
+  .bc-sub{font-size:15px;opacity:.75}
+  .bc-mission{font-size:40px;font-weight:800;background:linear-gradient(90deg,#fff,#f5c262);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;margin:14px 0}
+  .bc-date{font-size:13px;opacity:.6}
+  .bs-h{font-size:22px;font-weight:800;color:#f5c262;margin-bottom:20px}
+  .bs-big{font-size:52px;font-weight:800;margin:10px 0}
+  .bs-p{font-size:15px;opacity:.85;line-height:1.5}
+  .bs-list{text-align:left;display:inline-block;margin-top:16px;font-size:15px;line-height:2}
+  .bv-journey{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:6px}
+  .bv-step{display:flex;flex-direction:column;align-items:center;gap:5px;font-size:12px;opacity:.6;min-width:70px}
+  .bv-step.bvd{opacity:1;color:#7ee0a6}
+  .bv-ic{width:34px;height:34px;border-radius:50%;border:2px solid currentColor;display:flex;align-items:center;justify-content:center;font-size:15px}
+  .bv-arrow{opacity:.4}
+  .bs-cards{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+  .bs-card{background:rgba(255,255,255,.08);border-radius:14px;padding:18px 14px;width:150px}
+  .bsc-ic{font-size:32px}
+  .bsc-t{font-size:16px;font-weight:700;color:#f5c262;margin:8px 0 4px}
+  .bsc-d{font-size:12px;opacity:.8;line-height:1.4}
+  .bs-cycles{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+  .bs-cyc{background:rgba(255,255,255,.06);border-radius:10px;padding:11px 10px;width:108px;position:relative}
+  .bs-cyc.bca{background:rgba(245,194,98,.18);border:1px solid #f5c262}
+  .bsy-no{font-size:11px;opacity:.6;font-weight:700}
+  .bsy-t{font-size:12px;font-weight:600;margin:3px 0;line-height:1.25;min-height:44px}
+  .bsy-d{font-size:11px;opacity:.6}
+  .bsy-now{font-size:10px;color:#f5c262;font-weight:700;margin-top:3px}
+  .bproof{background:transparent}
+  .bproof .bp-stats{display:flex;gap:14px;justify-content:center;margin:24px 0}
+  .bp-stat{background:rgba(245,194,98,.12);border:1px solid rgba(245,194,98,.3);border-radius:14px;padding:18px 16px}
+  .bp-num{font-size:38px;font-weight:800;color:#f5c262}
+  .bp-lbl{font-size:12px;opacity:.8;margin-top:4px}
+  .bp-line{font-size:16px;font-style:italic;opacity:.9;max-width:420px;margin:10px auto 0;line-height:1.5}
+  .bs-nums{display:flex;flex-direction:column;gap:10px;max-width:460px;margin:0 auto}
+  .bn-row{display:flex;justify-content:space-between;align-items:center;gap:12px;background:rgba(255,255,255,.06);border-radius:10px;padding:12px 15px;font-size:14px;text-align:left}
+  .bn-row span{opacity:.7}
+  .bn-row b{color:#f5c262;text-align:right}
+  .bs-risks{display:flex;flex-direction:column;gap:9px;max-width:500px;margin:0 auto;text-align:left}
+  .br-row{display:flex;gap:10px;align-items:flex-start;background:rgba(255,255,255,.06);border-radius:10px;padding:11px 14px;font-size:14px;line-height:1.4}
+  .br-row b{color:#fff}
+  .br-green{border-left:3px solid #7ee0a6}
+  .br-amber{border-left:3px solid #ffd98a}
+  .br-red{border-left:3px solid #ff9b8f}
+  @media(max-width:480px){
+    .bc-mission{font-size:32px}.bc-title{font-size:24px}.bs-big{font-size:40px}
+    .bp-num{font-size:30px}.bp-stat{padding:14px 12px}.bs-card{width:130px}
+  }
   @media(max-width:420px){
     .hero-stats{gap:6px}.hs-num{font-size:18px}
     .home-tiles{grid-template-columns:repeat(2,1fr)}
@@ -416,6 +489,7 @@
     <div class="tabs">
       <div class="tab on" data-tab="home" onclick="switchTab('home')">🏠 Home</div>
       <div class="tab" data-tab="vision" onclick="switchTab('vision')">🎯 Vision</div>
+      <div class="tab" data-tab="board" onclick="switchTab('board')">📊 Board</div>
       <div class="tab" data-tab="daily" onclick="switchTab('daily')">📓 Daily</div>
       <div class="tab" data-tab="today" onclick="switchTab('today')">☀️ Aaj</div>
       <div class="tab" data-tab="dash" onclick="switchTab('dash')">📊 Dashboard</div>
@@ -427,6 +501,7 @@
 
     <div id="view-home"></div>
     <div id="view-vision" class="hide"></div>
+    <div id="view-board" class="hide"></div>
     <div id="view-daily" class="hide"></div>
     <div id="view-today" class="hide"></div>
     <div id="view-dash" class="hide"></div>
@@ -493,11 +568,12 @@ async function initApp(){
 // ====== TABS ======
 function switchTab(t){
   document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x.dataset.tab===t));
-  ['home','vision','daily','today','dash','w12','inbox','goals','parked'].forEach(v=>{
+  ['home','vision','board','daily','today','dash','w12','inbox','goals','parked'].forEach(v=>{
     document.getElementById('view-'+v).classList.toggle('hide',v!==t);
   });
   if(t==='home')loadHome();
   if(t==='vision')loadVision();
+  if(t==='board')loadBoard();
   if(t==='daily')loadDaily();
   if(t==='today')loadToday();
   if(t==='dash')loadDash();
@@ -1240,10 +1316,18 @@ async function openNotes(ptype,pid,ptitle){
         <p style="font-size:13px;color:var(--muted);margin-bottom:10px">Meeting / progress note — kya hua, kisse mile</p>
         <div class="field">
           <textarea id="noteText" placeholder="jaise: Rahul + Vipul se call, ROFR pe agree, non-compete pending"></textarea>
-          <button class="mic sm" id="noteMic" onclick="startVoice('noteMic','noteText','d')" style="margin-top:6px">🎤 Bolke likho</button>
+          <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
+            <button class="mic sm" id="noteMic" onclick="startVoice('noteMic','noteText','d')">🎤 Bolke likho</button>
+            <button class="btn sm ghost" onclick="polishNote()">✨ Professional banao</button>
+          </div>
+          <div id="polishOut"></div>
         </div>
         <div class="field">
           <input id="noteWith" placeholder="Kisse mile? (optional) jaise Rahul, lawyer">
+        </div>
+        <div class="field">
+          <label style="font-size:12px;color:var(--muted)">Kab tak complete hoga? (optional)</label>
+          <input type="date" id="noteExpected">
         </div>
         <div class="modal-actions">
           <button class="btn gray" onclick="closeModal()">Band karo</button>
@@ -1262,22 +1346,55 @@ async function loadNotes(ptype,pid){
   if(!el)return;
   if(error){el.innerHTML='<div class="empty" style="padding:14px">Error</div>';return}
   if(!data||!data.length){el.innerHTML='<div class="empty" style="padding:14px">Abhi koi note nahi. Upar se add karo.</div>';return}
-  el.innerHTML='<div class="note-hist-h">History</div>'+data.map(n=>{
+  el.innerHTML='<div class="note-hist-h">History (timeline)</div>'+data.map(n=>{
     const dt=new Date(n.created_at).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+    const exp=n.expected_date?`<div class="note-exp">🎯 Expected complete: ${new Date(n.expected_date).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}</div>`:'';
     return `<div class="note-item">
       <div class="note-txt">${esc(n.note)}</div>
+      ${exp}
       <div class="note-meta">${dt}${n.met_with?' · 👤 '+esc(n.met_with):''} <button class="note-del" onclick="delNote('${n.id}','${ptype}','${pid}')">✕</button></div>
     </div>`;
   }).join('');
+}
+
+async function polishNote(){
+  const txt=document.getElementById('noteText').value.trim();
+  if(!txt){toast('Pehle kuch likho');return}
+  const out=document.getElementById('polishOut');
+  out.innerHTML='<div class="polish-load">✨ AI professional bana raha hai...</div>';
+  try{
+    const r=await fetch('/api/ai-steps',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({idea:txt,mode:'polish'})});
+    const j=await r.json();
+    if(j.error){out.innerHTML='<div class="polish-load">Error: '+esc(j.error)+'</div>';return}
+    out.innerHTML=`<div class="polish-box">
+      <div class="polish-opt" onclick="usesPolish(this)">
+        <div class="po-tag">🇬🇧 English</div>
+        <div class="po-txt">${esc(j.english||'')}</div>
+      </div>
+      <div class="polish-opt" onclick="usesPolish(this)">
+        <div class="po-tag">🇮🇳 Hinglish</div>
+        <div class="po-txt">${esc(j.hinglish||'')}</div>
+      </div>
+      <div class="polish-hint">Tap karke chuno — note me aa jayega</div>
+    </div>`;
+  }catch(e){out.innerHTML='<div class="polish-load">Error: '+esc(e.message)+'</div>';}
+}
+function usesPolish(el){
+  const txt=el.querySelector('.po-txt').textContent;
+  document.getElementById('noteText').value=txt;
+  document.getElementById('polishOut').innerHTML='<div class="polish-done">✓ Note me daal diya — ab add karo</div>';
 }
 
 async function addNote(ptype,pid){
   const note=document.getElementById('noteText').value.trim();
   if(!note){toast('Kuch likho');return}
   const met=document.getElementById('noteWith').value.trim()||null;
-  await sb.from('plan_notes').insert({owner_id:ME.id,parent_type:ptype,parent_id:pid,note,met_with:met});
+  const exp=document.getElementById('noteExpected').value||null;
+  await sb.from('plan_notes').insert({owner_id:ME.id,parent_type:ptype,parent_id:pid,note,met_with:met,expected_date:exp});
   document.getElementById('noteText').value='';
   document.getElementById('noteWith').value='';
+  document.getElementById('noteExpected').value='';
   toast('Note save 📝');loadNotes(ptype,pid);
 }
 
@@ -1287,12 +1404,18 @@ async function delNote(id,ptype,pid){
 }
 async function toggleWeek(tacticId,week,wasDone){
   const newDone=!wasDone;
+  // jab DONE mark kar rahe ho, confirm karo "pakka complete?"
+  if(newDone){
+    const ok=confirm('Ye kaam PURA ho gaya?\n\nAgar abhi chal raha hai (jaise meeting hui par deal final nahi), to Cancel dabao — note me progress likho, aur jab pura ho tab tick karo.');
+    if(!ok)return;
+  }
   const {data:existing}=await sb.from('plan_weekly').select('id').eq('tactic_id',tacticId).eq('week_no',week);
   if(existing&&existing.length){
     await sb.from('plan_weekly').update({done:newDone}).eq('id',existing[0].id);
   }else{
     await sb.from('plan_weekly').insert({tactic_id:tacticId,week_no:week,done:newDone});
   }
+  if(newDone)toast('Complete! 🎉');
   loadW12();
 }
 
@@ -1538,6 +1661,178 @@ async function toggleVision(key,wasDone){
   loadVision();
 }
 
+// ====== BOARD VIEW (presentation mode) ======
+let BOARD_SLIDE=0;
+let BOARD_DATA=null;
+async function loadBoard(){
+  const root=document.getElementById('view-board');
+  root.innerHTML='<div class="empty">Board view taiyaar ho raha...</div>';
+  // gather all data
+  const d={};
+  // cycles + current
+  const {data:cycles}=await sb.from('plan_cycles').select('*').neq('status','archived').order('cycle_no');
+  d.cycles=cycles||[];
+  const active=(cycles||[]).find(c=>c.status==='active')||(cycles||[])[0];
+  d.active=active;
+  if(active){
+    d.cw=weekOfCycle(active.start_date);
+    const {data:wg}=await sb.from('plan_wgoals').select('id,title,lag_target').eq('cycle_id',active.id);
+    d.goals=wg||[];
+    const gids=(wg||[]).map(x=>x.id);
+    if(gids.length){
+      const {data:tacs}=await sb.from('plan_tactics').select('*').in('wgoal_id',gids);
+      const tids=(tacs||[]).map(x=>x.id);
+      const {data:wkly}=tids.length?await sb.from('plan_weekly').select('*').in('tactic_id',tids):{data:[]};
+      let dueT=0,dueD=0,missed=0;
+      (tacs||[]).forEach(t=>{const fw=t.focus_week||0;if(fw>0&&fw<=d.cw){dueT++;const x=(wkly||[]).find(w=>w.tactic_id===t.id&&w.week_no===fw&&w.done);if(x)dueD++;else if(fw<d.cw)missed++;}});
+      d.disc=dueT?Math.round(dueD/dueT*100):100;
+      d.missed=missed;
+      d.tactics=tacs||[];
+    }
+  }
+  // vision
+  let vdone={};
+  try{const {data}=await sb.from('plan_vision').select('*');(data||[]).forEach(r=>vdone[r.step_key]=r.done);}catch(e){}
+  d.vdone=vdone;
+  d.vDoneCount=VISION_STEPS.filter(s=>vdone[s.key]).length;
+  // recent work (daily + notes)
+  const {data:recentDaily}=await sb.from('plan_daily').select('*').eq('owner_id',ME.id).order('created_at',{ascending:false}).limit(5);
+  d.recentDaily=recentDaily||[];
+  BOARD_DATA=d;
+  BOARD_SLIDE=0;
+  renderBoardSlide();
+}
+
+function boardSlides(){
+  const d=BOARD_DATA;
+  const today=new Date().toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'});
+  const slides=[];
+
+  // 1. Cover
+  slides.push(`<div class="bslide bcover">
+    <div class="bc-logo">MP</div>
+    <div class="bc-title">SHREEJA PACKAGING</div>
+    <div class="bc-sub">Expansion Progress Update</div>
+    <div class="bc-mission">₹36 Cr → ₹100 Cr</div>
+    <div class="bc-date">${today}</div>
+  </div>`);
+
+  // 2. Where we are
+  slides.push(`<div class="bslide">
+    <div class="bs-h">Where We Are Today</div>
+    <div class="bs-big">₹36 Cr</div>
+    <div class="bs-p">Food-grade thin-wall packaging · Delhi NCR</div>
+    <div class="bs-list">
+      <div>✓ Trusted by Domino's, Dr. Oetker, Tropolite, Kalsang</div>
+      <div>✓ 25+ machines, 55+ SKUs, ~250 tons/month</div>
+      <div>✓ 14+ years industry experience</div>
+      <div>✓ Mould backward-linkage secured (20 moulds ordered)</div>
+    </div>
+  </div>`);
+
+  // 3. Vision
+  slides.push(`<div class="bslide bvision">
+    <div class="bs-h">The Vision — ₹100 Crore</div>
+    <div class="bv-journey">
+      ${VISION_STEPS.map(s=>{const done=d.vdone[s.key];return `<div class="bv-step ${done?'bvd':''}"><div class="bv-ic">${done?'✓':'○'}</div><div>${esc(s.label)}</div></div>`;}).join('<div class="bv-arrow">→</div>')}
+    </div>
+    <div class="bs-p" style="margin-top:20px">${d.vDoneCount}/${VISION_STEPS.length} milestones complete · Journey on track</div>
+  </div>`);
+
+  // 4. Strategy
+  slides.push(`<div class="bslide">
+    <div class="bs-h">The Strategy — 3 Engines</div>
+    <div class="bs-cards">
+      <div class="bs-card"><div class="bsc-ic">🏭</div><div class="bsc-t">Capacity</div><div class="bsc-d">14 machines (4→4→6)<br>~3x output</div></div>
+      <div class="bs-card"><div class="bsc-ic">💎</div><div class="bsc-t">Premium</div><div class="bsc-d">Tamper-lock, cosmetic<br>Low competition, high margin</div></div>
+      <div class="bs-card"><div class="bsc-ic">🌍</div><div class="bsc-t">Markets</div><div class="bsc-d">North India deepen<br>New segments</div></div>
+    </div>
+    <div class="bs-p" style="margin-top:18px">Half premium + half regular = balanced growth to ₹100 Cr</div>
+  </div>`);
+
+  // 5. The Plan
+  slides.push(`<div class="bslide">
+    <div class="bs-h">The Plan — 18 Months, 6 Cycles</div>
+    <div class="bs-cycles">
+      ${(d.cycles||[]).map(c=>{const isA=c.status==='active';return `<div class="bs-cyc ${isA?'bca':''}">
+        <div class="bsy-no">Cycle ${c.cycle_no||''}</div>
+        <div class="bsy-t">${esc(c.title.replace(/^Cycle \d+ — /,''))}</div>
+        <div class="bsy-d">${new Date(c.start_date).toLocaleDateString('en-IN',{month:'short',year:'2-digit'})}</div>
+        ${isA?'<div class="bsy-now">● NOW</div>':''}
+      </div>`;}).join('')}
+    </div>
+    <div class="bs-p" style="margin-top:16px">Week-by-week plan · Every task has an owner</div>
+  </div>`);
+
+  // 6. PROOF — discipline (killer slide)
+  slides.push(`<div class="bslide bproof">
+    <div class="bs-h" style="color:#fff">The Proof — System-Driven Execution</div>
+    <div class="bp-stats">
+      <div class="bp-stat"><div class="bp-num">${d.disc||0}%</div><div class="bp-lbl">Discipline (KRA)</div></div>
+      <div class="bp-stat"><div class="bp-num">${d.active?'W'+d.cw:'-'}</div><div class="bp-lbl">Current Week / 12</div></div>
+      <div class="bp-stat"><div class="bp-num">${d.vDoneCount}/${VISION_STEPS.length}</div><div class="bp-lbl">Milestones Done</div></div>
+    </div>
+    <div class="bp-line">"Main har kaam measure karta hu — ye live system hai, PowerPoint nahi"</div>
+  </div>`);
+
+  // 7. Numbers
+  slides.push(`<div class="bslide">
+    <div class="bs-h">Investment & Returns</div>
+    <div class="bs-nums">
+      <div class="bn-row"><span>Revenue Journey</span><b>₹36 Cr → ~₹65 Cr (Y1) → ₹100 Cr+ (Y2)</b></div>
+      <div class="bn-row"><span>Funding</span><b>40% Bank Loan · 60% Own + JV</b></div>
+      <div class="bn-row"><span>Promoter Commitment</span><b>High (60% own capital)</b></div>
+      <div class="bn-row"><span>Margins</span><b>Premium products driving higher margin</b></div>
+      <div class="bn-row"><span>Land</span><b>Self-funded ✓ (not JV-dependent)</b></div>
+    </div>
+    <div class="bs-p" style="margin-top:14px;font-size:13px">Detailed projections in DPR</div>
+  </div>`);
+
+  // 8. Risk
+  slides.push(`<div class="bslide">
+    <div class="bs-h">Risks & Mitigation — Full Transparency</div>
+    <div class="bs-risks">
+      <div class="br-row br-red"><span class="br-dot">🔴</span><div><b>CLU Timing</b> (biggest) — Parallel site work, buffer kept, liaison support</div></div>
+      <div class="br-row br-amber"><span class="br-dot">🟡</span><div><b>Civil Delay</b> — Contractor locked, HT line applied in parallel</div></div>
+      <div class="br-row br-green"><span class="br-dot">🟢</span><div><b>Machine-Mould Sync</b> — SOLVED: 20 moulds pre-ordered</div></div>
+      <div class="br-row br-amber"><span class="br-dot">🟡</span><div><b>Market/Demand</b> — Sales built BEFORE capacity</div></div>
+      <div class="br-row br-green"><span class="br-dot">🟢</span><div><b>Cash Flow</b> — Land self-funded, loan + JV planned</div></div>
+    </div>
+  </div>`);
+
+  // 9. Close
+  slides.push(`<div class="bslide bcover">
+    <div class="bc-title" style="font-size:26px">Sirf vision nahi —<br>vision + plan + discipline</div>
+    <div class="bc-mission" style="margin-top:24px">₹100 Cr+</div>
+    <div class="bc-sub" style="margin-top:20px;font-style:italic">"Customer product nahi kharidta,<br>customer trust kharidta hai"</div>
+    <div class="bc-date" style="margin-top:24px">Aapka bharosa · Meri mehnat</div>
+  </div>`);
+
+  return slides;
+}
+
+function renderBoardSlide(){
+  const root=document.getElementById('view-board');
+  const slides=boardSlides();
+  const total=slides.length;
+  if(BOARD_SLIDE<0)BOARD_SLIDE=0;
+  if(BOARD_SLIDE>=total)BOARD_SLIDE=total-1;
+  root.innerHTML=`
+    <div class="board-wrap">
+      <div class="board-bar">
+        <button class="bbtn" onclick="loadHome()">✕ Band</button>
+        <div class="board-dots">${slides.map((_,i)=>`<span class="bdot ${i===BOARD_SLIDE?'on':''}" onclick="BOARD_SLIDE=${i};renderBoardSlide()"></span>`).join('')}</div>
+        <div class="board-count">${BOARD_SLIDE+1}/${total}</div>
+      </div>
+      <div class="board-stage">${slides[BOARD_SLIDE]}</div>
+      <div class="board-nav">
+        <button class="bnav" onclick="BOARD_SLIDE--;renderBoardSlide()" ${BOARD_SLIDE===0?'disabled':''}>‹ Pichla</button>
+        <button class="bnav" onclick="BOARD_SLIDE++;renderBoardSlide()" ${BOARD_SLIDE===total-1?'disabled':''}>Agla ›</button>
+      </div>
+    </div>`;
+}
+
+
 let DAILY_VIEW_DATE=null;
 function loadDaily(){DAILY_VIEW_DATE=todayStr();renderDaily()}
 
@@ -1554,8 +1849,10 @@ async function renderDaily(){
       <textarea id="dailyText" placeholder="jaise: Domino's se 500 container ka order enquiry aaya, kal quote bhejna hai"></textarea>
       <div class="cap-row">
         <button class="mic" id="dMicBtn" onclick="toggleDailyMic()" title="Bolke likho">🎤</button>
+        <button class="btn ghost sm" onclick="polishDaily()">✨ Professional</button>
         <button class="btn" id="dLogBtn" onclick="addDaily()">Log karo</button>
       </div>
+      <div id="dPolishOut"></div>
     </div>`;
     html+='<div id="timerBox"></div>';
   }
@@ -1783,6 +2080,32 @@ async function addDaily(){
 async function delDaily(id){
   await sb.from('plan_daily').delete().eq('id',id);
   toast('Delete');renderDaily();
+}
+
+async function polishDaily(){
+  const txt=document.getElementById('dailyText').value.trim();
+  if(!txt){toast('Pehle kuch likho');return}
+  const out=document.getElementById('dPolishOut');
+  out.innerHTML='<div class="polish-load">✨ AI professional bana raha hai...</div>';
+  try{
+    const r=await fetch('/api/ai-steps',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({idea:txt,mode:'polish'})});
+    const j=await r.json();
+    if(j.error){out.innerHTML='<div class="polish-load">Error: '+esc(j.error)+'</div>';return}
+    out.innerHTML=`<div class="polish-box">
+      <div class="polish-opt" onclick="useDailyPolish(this)">
+        <div class="po-tag">🇬🇧 English</div><div class="po-txt">${esc(j.english||'')}</div>
+      </div>
+      <div class="polish-opt" onclick="useDailyPolish(this)">
+        <div class="po-tag">🇮🇳 Hinglish</div><div class="po-txt">${esc(j.hinglish||'')}</div>
+      </div>
+      <div class="polish-hint">Tap karke chuno</div>
+    </div>`;
+  }catch(e){out.innerHTML='<div class="polish-load">Error: '+esc(e.message)+'</div>';}
+}
+function useDailyPolish(el){
+  document.getElementById('dailyText').value=el.querySelector('.po-txt').textContent;
+  document.getElementById('dPolishOut').innerHTML='<div class="polish-done">✓ Ab Log karo dabao</div>';
 }
 
 // Daily voice mic
