@@ -11,7 +11,26 @@
 <meta name="apple-mobile-web-app-title" content="Mayur Plan">
 <link rel="apple-touch-icon" href="/icon-192.png">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/docx/8.5.0/docx.umd.js"></script>
+<script>
+// docx library — multiple sources try karo (reliability ke liye)
+(function loadDocx(){
+  var sources=[
+    'https://cdnjs.cloudflare.com/ajax/libs/docx/8.5.0/docx.umd.js',
+    'https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js',
+    'https://unpkg.com/docx@8.5.0/build/index.umd.js'
+  ];
+  var i=0;
+  function tryLoad(){
+    if(i>=sources.length){console.warn('docx load failed all sources');return;}
+    var s=document.createElement('script');
+    s.src=sources[i];
+    s.onload=function(){console.log('docx loaded from source '+i);};
+    s.onerror=function(){i++;tryLoad();};
+    document.head.appendChild(s);
+  }
+  tryLoad();
+})();
+</script>
 <style>
   :root{
     --navy:#1F4E79; --navy-d:#163a5c; --bg:#f4f6f9; --card:#ffffff;
@@ -1059,7 +1078,19 @@ function weekDateRange(startDate,weekNo){
 
 async function downloadSummary(scope){
   if(!window.__w12){toast('Pehle 12-Week tab kholo');return}
-  if(typeof docx==='undefined'){toast('Library load ho rahi, ek min baad try karo');return}
+  // library load hone ka wait karo (max 8 second)
+  if(typeof docx==='undefined'){
+    toast('Summary taiyaar ho rahi, ek pal...');
+    let waited=0;
+    while(typeof docx==='undefined' && waited<8000){
+      await new Promise(r=>setTimeout(r,400));
+      waited+=400;
+    }
+    if(typeof docx==='undefined'){
+      toast('Net slow hai — page refresh karke dobara try karo');
+      return;
+    }
+  }
   const D=window.__w12;
   const {Document,Packer,Paragraph,TextRun,Table,TableRow,TableCell,AlignmentType,HeadingLevel,BorderStyle,WidthType,ShadingType}=docx;
   const NAVY="1F4E79",GOLD="9A6700",LIGHT="EAF1F8",GREEN="157347",MUTE="6B7686";
