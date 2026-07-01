@@ -86,9 +86,9 @@
 
   /* Tabs */
   .tabs{display:flex;gap:6px;margin-bottom:16px;overflow-x:auto;padding-bottom:2px}
-  .tab{flex:0 0 auto;padding:8px 15px;border-radius:20px;background:var(--card);border:1px solid var(--line);
-    font-size:13px;cursor:pointer;color:var(--muted);white-space:nowrap}
-  .tab.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+  .tab{flex:0 0 auto;padding:9px 15px;border-radius:20px;background:var(--card);border:1px solid var(--line);
+    font-size:13px;cursor:pointer;color:var(--muted);white-space:nowrap;font-weight:600}
+  .tab.on{background:linear-gradient(135deg,#1F4E79,#2d6ba3);color:#fff;border-color:transparent;box-shadow:0 4px 12px rgba(31,78,121,.3)}
 
   /* Cards */
   .sec-title{font-size:13px;color:var(--muted);margin:4px 2px 10px;text-transform:uppercase;letter-spacing:.4px}
@@ -214,6 +214,43 @@
   .cycle-sel select{flex:1;min-width:180px;font-size:14px;padding:9px 11px;font-weight:600;color:var(--navy)}
   .sum-btns{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
   .sum-btns .btn{flex:1;min-width:150px}
+
+  /* ===== PREMIUM HOME ===== */
+  .hhero{background:linear-gradient(135deg,#1F4E79 0%,#2d6ba3 60%,#3b82c4 100%);border-radius:22px;padding:22px;color:#fff;position:relative;overflow:hidden;box-shadow:0 10px 30px rgba(31,78,121,.3);margin-bottom:16px}
+  .hhero::before{content:'';position:absolute;width:180px;height:180px;background:rgba(255,255,255,.08);border-radius:50%;top:-70px;right:-40px}
+  .hhero::after{content:'';position:absolute;width:120px;height:120px;background:rgba(245,194,98,.15);border-radius:50%;bottom:-50px;right:30px}
+  .hhero-greet{font-size:14px;opacity:.85;position:relative}
+  .hhero-name{font-size:26px;font-weight:800;margin:2px 0 14px;position:relative}
+  .hhero-mission{background:linear-gradient(135deg,#f5a623,#f5c262);color:#1F4E79;display:inline-block;padding:7px 15px;border-radius:30px;font-weight:800;font-size:15px;position:relative;box-shadow:0 4px 14px rgba(245,166,35,.4)}
+  .hhero-meta{display:flex;gap:22px;margin-top:16px;position:relative;font-size:12.5px}
+  .hhero-meta span{opacity:.8}
+  .hhero-meta b{display:block;font-size:15px;margin-top:2px}
+  .hstats{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:6px}
+  .hstat{border-radius:18px;padding:16px;color:#fff;position:relative;overflow:hidden}
+  .hstat::after{content:'';position:absolute;width:70px;height:70px;border-radius:50%;background:rgba(255,255,255,.13);top:-25px;right:-20px}
+  .st1{background:linear-gradient(135deg,#7c3aed,#a855f7)}
+  .st2{background:linear-gradient(135deg,#059669,#10b981)}
+  .st3{background:linear-gradient(135deg,#e11d48,#fb7185)}
+  .st4{background:linear-gradient(135deg,#ea580c,#fb923c)}
+  .hst-ic{font-size:18px}
+  .hst-num{font-size:27px;font-weight:800;margin:5px 0 2px}
+  .hst-lbl{font-size:11.5px;opacity:.92}
+  .hsec{font-size:15px;font-weight:800;color:var(--navy);margin:22px 2px 10px}
+  .hfocus{background:#fff;border-radius:16px;padding:6px 16px;box-shadow:0 3px 12px rgba(0,0,0,.05)}
+  .hf-item{display:flex;align-items:center;gap:11px;padding:11px 0;border-bottom:1px solid #f1f5f9}
+  .hf-item:last-of-type{border-bottom:none}
+  .hf-dot{width:28px;height:28px;border-radius:9px;background:#eef5ff;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+  .hf-t{flex:1;font-size:14px;color:#1e293b;font-weight:500}
+  .hf-chip{font-size:10px;background:#fff7e6;color:#9a6700;padding:3px 9px;border-radius:20px;font-weight:700;white-space:nowrap}
+  .home-tiles{display:grid;grid-template-columns:1fr 1fr 1fr;gap:11px}
+  .htile{border-radius:16px;padding:16px 8px;text-align:center;color:#fff;font-size:12px;font-weight:700;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.1)}
+  .htile span{display:block;font-size:24px;margin-bottom:6px}
+  .ht-a{background:linear-gradient(135deg,#7c3aed,#a855f7)}
+  .ht-b{background:linear-gradient(135deg,#2563eb,#3b82f6)}
+  .ht-c{background:linear-gradient(135deg,#059669,#10b981)}
+  .ht-d{background:linear-gradient(135deg,#e11d48,#fb7185)}
+  .ht-e{background:linear-gradient(135deg,#ea580c,#fb923c)}
+  .ht-f{background:linear-gradient(135deg,#0891b2,#06b6d4)}
   .note-hist-h{font-size:12px;color:var(--muted);font-weight:600;margin-bottom:8px;text-transform:uppercase}
   .note-item{background:var(--surface-2,#f4f6f9);border:1px solid var(--line);border-radius:9px;padding:10px 12px;margin-bottom:8px}
   .note-txt{font-size:14px;line-height:1.4}
@@ -1689,32 +1726,29 @@ async function loadHome(){
   const {data:ttacs}=await sb.from('plan_tactics').select('id,title').eq('scheduled_date',today);
   const todayList=[...(tsteps||[]).filter(s=>!s.is_done).map(s=>s.title),...(ttacs||[]).map(t=>t.title)];
 
-  // --- render ---
+  // --- render (premium colourful) ---
   let html=`
-  <div class="hero">
-    <div class="hero-top">
-      <div>
-        <div class="hero-greet">${greet}, ${esc(name)} 👋</div>
-        <div class="hero-date">${dateLabel}</div>
-      </div>
-      <div class="hero-logo">MP</div>
+  <div class="hhero">
+    <div class="hhero-greet">${greet},</div>
+    <div class="hhero-name">${esc(name)} 👋</div>
+    <div class="hhero-mission">₹36 Cr → ₹100 Cr</div>
+    <div class="hhero-meta">
+      <div><span>Cycle</span><b>${cw?'Week '+cw+' / 12':'—'}</b></div>
+      <div><span>Focus</span><b>${cw?esc(cycleTitle.slice(0,18)):'Set cycle'}</b></div>
     </div>
-    <div class="hero-mission">
-      <div class="hm-label">Mission</div>
-      <div class="hm-value">₹36 Cr → ₹100 Cr</div>
-      ${cw?`<div class="hm-sub">${esc(cycleTitle)} · Week ${cw} of 12</div>`:'<div class="hm-sub">Koi active cycle nahi</div>'}
-    </div>
-    <div class="hero-stats">
-      <div class="hs"><div class="hs-num">${execPct}%</div><div class="hs-lbl">Is week</div></div>
-      <div class="hs"><div class="hs-num ${disc>=85?'g':disc>=60?'a':'r'}">${disc}%</div><div class="hs-lbl">Discipline</div></div>
-      <div class="hs"><div class="hs-num">${dScore}</div><div class="hs-lbl">Aaj score</div></div>
-      <div class="hs"><div class="hs-num">${tHr>0?tHr+'h':''}${tMin}m</div><div class="hs-lbl">Aaj time</div></div>
-    </div>
+  </div>
+
+  <div class="hstats">
+    <div class="hstat st1"><div class="hst-ic">📅</div><div class="hst-num">${execPct}%</div><div class="hst-lbl">Week Execution</div></div>
+    <div class="hstat st2"><div class="hst-ic">🎯</div><div class="hst-num">${disc}%</div><div class="hst-lbl">Discipline (KRA)</div></div>
+    <div class="hstat st3"><div class="hst-ic">📓</div><div class="hst-num">${dScore}/10</div><div class="hst-lbl">Aaj ka Score</div></div>
+    <div class="hstat st4"><div class="hst-ic">⏱️</div><div class="hst-num">${tHr>0?tHr+'h':''}${tMin}m</div><div class="hst-lbl">Aaj ka Time</div></div>
   </div>`;
 
   // quick capture
-  html+=`<div class="home-capture">
-    <input id="homeCap" placeholder="💡 Kuch bhi dimag me? yahan daalo...">
+  html+=`<div class="hsec">⚡ Quick Capture</div>
+  <div class="home-capture">
+    <input id="homeCap" placeholder="Dimag me kya hai? Type karo...">
     <button class="mic" id="hMic" onclick="startVoice('hMic','homeCap','c')">🎤</button>
     <button class="btn" onclick="homeCaptureGo()">+</button>
   </div>`;
@@ -1728,26 +1762,30 @@ async function loadHome(){
 
   // this week focus
   if(weekTactics.length){
-    html+=`<div class="home-card">
-      <div class="hc-head">📌 Is hafte karna hai (Week ${cw})</div>
-      ${weekTactics.slice(0,5).map(t=>`<div class="hc-line">○ ${esc(t.title)}</div>`).join('')}
+    const wr=cyc&&cyc.length?weekDateRange(cyc[0].start_date,cw):'';
+    html+=`<div class="hsec">📌 Is Hafte ka Focus</div>
+    <div class="hfocus">
+      ${weekTactics.slice(0,5).map(t=>{
+        const dl=t.scheduled_date?new Date(t.scheduled_date).toLocaleDateString('en-IN',{day:'numeric',month:'short'}):wr;
+        return `<div class="hf-item"><div class="hf-dot">${CATS[t.category]?CATS[t.category].e:'○'}</div><div class="hf-t">${esc(t.title)}</div><div class="hf-chip">📅 ${dl}</div></div>`;
+      }).join('')}
       <button class="hc-link" onclick="switchTab('w12')">12-Week plan kholo →</button>
     </div>`;
   }
 
   // today's schedule
-  html+=`<div class="home-card">
-    <div class="hc-head">☀️ Aaj ka kaam ${todayList.length?'('+todayList.length+')':''}</div>
-    ${todayList.length?todayList.slice(0,5).map(t=>`<div class="hc-line">○ ${esc(t)}</div>`).join(''):'<div class="hc-empty">Aaj ke liye kuch schedule nahi</div>'}
+  html+=`<div class="hsec">☀️ Aaj ka Kaam ${todayList.length?'('+todayList.length+')':''}</div>
+  <div class="hfocus">
+    ${todayList.length?todayList.slice(0,5).map(t=>`<div class="hf-item"><div class="hf-dot">○</div><div class="hf-t">${esc(t)}</div></div>`).join(''):'<div class="hc-empty">Aaj ke liye kuch schedule nahi</div>'}
     <button class="hc-link" onclick="switchTab('today')">Aaj ka scheduler →</button>
   </div>`;
 
-  // time breakdown card (aaj productivity kahan gayi)
+  // time breakdown
   if(totalMin>0){
     const sorted=Object.entries(timeByCat).sort((a,b)=>b[1]-a[1]);
     const fmtT=m=>{const h=Math.floor(m/60),mm=m%60;return (h>0?h+'h ':'')+mm+'m'};
-    html+=`<div class="home-card">
-      <div class="hc-head">⏱ Aaj productivity kahan gayi · ${fmtT(totalMin)}</div>
+    html+=`<div class="hsec">⏱ Aaj Productivity · ${fmtT(totalMin)}</div>
+    <div class="hfocus">
       ${sorted.map(([c,m])=>{
         const cat=CATS[c]||CATS.Other;const pct=Math.round(m/totalMin*100);
         return `<div class="ht-row">
@@ -1772,12 +1810,15 @@ async function loadHome(){
     </div>`;
   }
 
-  // quick nav tiles
-  html+=`<div class="home-tiles">
-    <div class="tile" onclick="switchTab('daily')"><span>📓</span>Daily Log</div>
-    <div class="tile" onclick="switchTab('w12')"><span>📅</span>12-Week</div>
-    <div class="tile" onclick="switchTab('dash')"><span>📊</span>Dashboard</div>
-    <div class="tile" onclick="switchTab('goals')"><span>🎯</span>Goals</div>
+  // Quick Access tiles (colourful)
+  html+=`<div class="hsec">🚀 Quick Access</div>
+  <div class="home-tiles">
+    <div class="htile ht-a" onclick="switchTab('board')"><span>📊</span>Board</div>
+    <div class="htile ht-b" onclick="switchTab('w12')"><span>📅</span>12-Week</div>
+    <div class="htile ht-c" onclick="switchTab('cal')"><span>📆</span>Calendar</div>
+    <div class="htile ht-d" onclick="switchTab('vision')"><span>🎯</span>Vision</div>
+    <div class="htile ht-e" onclick="switchTab('daily')"><span>📓</span>Daily</div>
+    <div class="htile ht-f" onclick="switchTab('inbox')"><span>📥</span>Inbox</div>
   </div>`;
 
   root.innerHTML=html;
