@@ -187,6 +187,7 @@
   .wf-item{display:flex;align-items:center;gap:9px;padding:5px 0;font-size:14px}
   .wf-item input{width:18px;height:18px;accent-color:var(--green)}
   .wf-item.wf-done span{text-decoration:line-through;color:var(--muted)}
+  .wf-date{font-size:11px;color:#9a6700;background:#fff;padding:1px 7px;border-radius:10px;white-space:nowrap;text-decoration:none!important}
   .mini-edit{background:none;border:none;cursor:pointer;font-size:12px;padding:1px 3px;opacity:.6}
   .mini-edit:hover{opacity:1}
   .cycle-sel{display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap}
@@ -427,6 +428,17 @@
   .bn-row{display:flex;justify-content:space-between;align-items:center;gap:12px;background:rgba(255,255,255,.06);border-radius:10px;padding:12px 15px;font-size:14px;text-align:left}
   .bn-row span{opacity:.7}
   .bn-row b{color:#f5c262;text-align:right}
+  /* board charts */
+  .bchart{max-width:480px;margin:0 auto}
+  .bc-bars{display:flex;align-items:flex-end;justify-content:center;gap:10px;height:240px}
+  .bc-col{display:flex;flex-direction:column;align-items:center;flex:1;height:100%;justify-content:flex-end}
+  .bc-val{font-size:15px;font-weight:800;color:#f5c262;margin-bottom:5px}
+  .bc-bar-wrap{width:100%;max-width:54px;height:180px;display:flex;align-items:flex-end}
+  .bc-bar{width:100%;border-radius:7px 7px 0 0;min-height:6px;transition:height .5s}
+  .bc-lbl{font-size:11px;opacity:.8;margin-top:7px;text-align:center;line-height:1.2}
+  .bc-unit{text-align:center;font-size:12px;opacity:.6;margin-top:10px}
+  .bn-mini{display:flex;gap:20px;justify-content:center;margin-top:18px;font-size:14px}
+  .bn-mini b{color:#f5c262}
   .bs-risks{display:flex;flex-direction:column;gap:9px;max-width:500px;margin:0 auto;text-align:left}
   .br-row{display:flex;gap:10px;align-items:flex-start;background:rgba(255,255,255,.06);border-radius:10px;padding:11px 14px;font-size:14px;line-height:1.4}
   .br-row b{color:#fff}
@@ -1165,7 +1177,10 @@ async function loadW12(){
       <div class="wf-head">📌 Week ${curWeek} — is hafte ye karna hai (${wkRange})</div>
       ${thisWeekTactics.map(t=>{
         const done=weekly.find(x=>x.tactic_id===t.id&&x.week_no===curWeek&&x.done);
-        return `<label class="wf-item ${done?'wf-done':''}"><input type="checkbox" ${done?'checked':''} onchange="toggleWeek('${t.id}',${curWeek},${done?'true':'false'})"> <span>${esc(t.title)}</span></label>`;
+        const dateLabel=t.scheduled_date
+          ? new Date(t.scheduled_date).toLocaleDateString('en-IN',{day:'numeric',month:'short'})+(t.time_slot?' · '+t.time_slot:'')
+          : wkRange;
+        return `<label class="wf-item ${done?'wf-done':''}"><input type="checkbox" ${done?'checked':''} onchange="toggleWeek('${t.id}',${curWeek},${done?'true':'false'})"> <span>${esc(t.title)} <span class="wf-date">📅 ${dateLabel}</span></span></label>`;
       }).join('')}
     </div>`;
   }
@@ -1760,6 +1775,18 @@ async function loadBoard(){
   renderBoardSlide();
 }
 
+function barChart(data,maxVal,unit){
+  const max=maxVal||Math.max(...data.map(d=>d.val));
+  return `<div class="bc-bars">`+data.map(d=>{
+    const pct=Math.round(d.val/max*100);
+    return `<div class="bc-col">
+      <div class="bc-val">${d.val}</div>
+      <div class="bc-bar-wrap"><div class="bc-bar" style="height:${Math.max(pct,4)}%;background:${d.color}"></div></div>
+      <div class="bc-lbl">${d.label}</div>
+    </div>`;
+  }).join('')+`</div><div class="bc-unit">${unit||''}</div>`;
+}
+
 function boardSlides(){
   const d=BOARD_DATA;
   const today=new Date().toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'});
@@ -1832,17 +1859,61 @@ function boardSlides(){
     <div class="bp-line">"Main har kaam measure karta hu — ye live system hai, PowerPoint nahi"</div>
   </div>`);
 
-  // 7. Numbers
+  // 7. Revenue Growth Chart
   slides.push(`<div class="bslide">
-    <div class="bs-h">Investment & Returns</div>
-    <div class="bs-nums">
-      <div class="bn-row"><span>Revenue Journey</span><b>₹36 Cr → ~₹65 Cr (Y1) → ₹100 Cr+ (Y2)</b></div>
-      <div class="bn-row"><span>Funding</span><b>40% Bank Loan · 60% Own + JV</b></div>
-      <div class="bn-row"><span>Promoter Commitment</span><b>High (60% own capital)</b></div>
-      <div class="bn-row"><span>Margins</span><b>Premium products driving higher margin</b></div>
-      <div class="bn-row"><span>Land</span><b>Self-funded ✓ (not JV-dependent)</b></div>
+    <div class="bs-h">Revenue Journey — ₹36 Cr to ₹100 Cr</div>
+    <div class="bchart">
+      ${barChart([
+        {label:'Aaj',val:36,color:'#6b7686'},
+        {label:'Year 1',val:60,color:'#2563eb'},
+        {label:'Year 2',val:85,color:'#0e7490'},
+        {label:'Year 3',val:100,color:'#157347'}
+      ],100,'₹ Cr')}
     </div>
-    <div class="bs-p" style="margin-top:14px;font-size:13px">Detailed projections in DPR</div>
+    <div class="bs-p" style="margin-top:14px">2.8x revenue growth · Driven by capacity + premium mix</div>
+  </div>`);
+
+  // 8. Investment Breakdown Chart
+  slides.push(`<div class="bslide">
+    <div class="bs-h">Investment — ₹36.2 Cr</div>
+    <div class="bchart">
+      ${barChart([
+        {label:'Machines',val:14,color:'#1F4E79'},
+        {label:'Land',val:7.2,color:'#9a6700'},
+        {label:'Building',val:5,color:'#b42318'},
+        {label:'Mould',val:4,color:'#7c3aed'},
+        {label:'Work.Cap',val:4,color:'#0e7490'},
+        {label:'Auxiliary',val:2,color:'#157347'}
+      ],14,'₹ Cr')}
+    </div>
+    <div class="bn-mini">
+      <div><b>40%</b> Bank Loan (₹14.5 Cr)</div>
+      <div><b>60%</b> Own + JV (₹21.7 Cr)</div>
+    </div>
+  </div>`);
+
+  // 9. Capacity Growth Chart
+  slides.push(`<div class="bslide">
+    <div class="bs-h">Capacity Growth (ton/month)</div>
+    <div class="bchart">
+      ${barChart([
+        {label:'Abhi',val:200,color:'#6b7686'},
+        {label:'Naya plant',val:280,color:'#2563eb'},
+        {label:'Total',val:480,color:'#157347'}
+      ],480,'ton')}
+    </div>
+    <div class="bs-p" style="margin-top:14px">2.4x capacity · 14 machines (Phase 4→4→6)</div>
+  </div>`);
+
+  // 10. Financial Summary (the convincer)
+  slides.push(`<div class="bslide bproof">
+    <div class="bs-h" style="color:#fff">The Numbers That Matter</div>
+    <div class="bp-stats">
+      <div class="bp-stat"><div class="bp-num">₹36 Cr</div><div class="bp-lbl">Investment</div></div>
+      <div class="bp-stat"><div class="bp-num">3 yr</div><div class="bp-lbl">Payback</div></div>
+      <div class="bp-stat"><div class="bp-num">~18%</div><div class="bp-lbl">Margin (premium)</div></div>
+    </div>
+    <div class="bp-line">"₹36 Cr lagao. 3 saal me wapas. Phir har saal ₹18 Cr+ profit.<br>Business ₹36 Cr se ₹100 Cr — plus asset (land+plant)."</div>
   </div>`);
 
   // 8. Risk
