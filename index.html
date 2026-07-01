@@ -11,6 +11,7 @@
 <meta name="apple-mobile-web-app-title" content="Mayur Plan">
 <link rel="apple-touch-icon" href="/icon-192.png">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/docx/8.5.0/docx.umd.js"></script>
 <style>
   :root{
     --navy:#1F4E79; --navy-d:#163a5c; --bg:#f4f6f9; --card:#ffffff;
@@ -192,6 +193,8 @@
   .mini-edit:hover{opacity:1}
   .cycle-sel{display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap}
   .cycle-sel select{flex:1;min-width:180px;font-size:14px;padding:9px 11px;font-weight:600;color:var(--navy)}
+  .sum-btns{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+  .sum-btns .btn{flex:1;min-width:150px}
   .note-hist-h{font-size:12px;color:var(--muted);font-weight:600;margin-bottom:8px;text-transform:uppercase}
   .note-item{background:var(--surface-2,#f4f6f9);border:1px solid var(--line);border-radius:9px;padding:10px 12px;margin-bottom:8px}
   .note-txt{font-size:14px;line-height:1.4}
@@ -1054,6 +1057,89 @@ function weekDateRange(startDate,weekNo){
   return f(ws)+'–'+f(we);
 }
 
+async function downloadSummary(scope){
+  if(!window.__w12){toast('Pehle 12-Week tab kholo');return}
+  if(typeof docx==='undefined'){toast('Library load ho rahi, ek min baad try karo');return}
+  const D=window.__w12;
+  const {Document,Packer,Paragraph,TextRun,Table,TableRow,TableCell,AlignmentType,HeadingLevel,BorderStyle,WidthType,ShadingType}=docx;
+  const NAVY="1F4E79",GOLD="9A6700",LIGHT="EAF1F8",GREEN="157347",MUTE="6B7686";
+  const isCycle=scope==='cycle';
+  const curW=D.curWeek;
+
+  // konse tactics dikhane hain
+  const tacsToShow = isCycle ? D.tactics : D.tactics.filter(t=>t.focus_week===curW);
+
+  // helper: tactic ki notes
+  const notesOf=(pid)=>D.allNotes.filter(n=>n.parent_id===pid);
+
+  const border={style:BorderStyle.SINGLE,size:1,color:"CCCCCC"};
+  const borders={top:border,bottom:border,left:border,right:border};
+  function cell(runs,opts){opts=opts||{};return new TableCell({borders,width:{size:opts.w||3000,type:WidthType.DXA},shading:opts.fill?{fill:opts.fill,type:ShadingType.CLEAR}:undefined,margins:{top:60,bottom:60,left:100,right:100},children:[new Paragraph({children:runs})]});}
+  function txt(t,o){o=o||{};return new TextRun({text:String(t),bold:o.bold||false,color:o.color||"333333",size:o.size||20,italics:o.italics||false});}
+
+  const kids=[];
+  // Title
+  kids.push(new Paragraph({alignment:AlignmentType.CENTER,spacing:{after:40},children:[txt("SHREEJA PACKAGING",{bold:true,size:32,color:NAVY})]}));
+  kids.push(new Paragraph({alignment:AlignmentType.CENTER,spacing:{after:40},children:[txt(isCycle?"Cycle Progress Summary":"Weekly Progress Summary",{bold:true,size:24,color:GOLD})]}));
+  kids.push(new Paragraph({alignment:AlignmentType.CENTER,spacing:{after:120},children:[txt(esc(D.cyc.title),{size:20,color:MUTE})]}));
+  const today=new Date().toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'});
+  kids.push(new Paragraph({alignment:AlignmentType.CENTER,spacing:{after:200},children:[txt((isCycle?"Full cycle · ":"Week "+curW+" ("+D.wkRange+") · ")+"Generated "+today,{size:18,color:MUTE,italics:true})]}));
+
+  // Progress stat
+  const dueT=D.tactics.filter(t=>t.focus_week>0&&t.focus_week<=curW);
+  const doneT=dueT.filter(t=>D.weekly.find(w=>w.tactic_id===t.id&&w.week_no===t.focus_week&&w.done));
+  const disc=dueT.length?Math.round(doneT.length/dueT.length*100):100;
+  kids.push(new Paragraph({spacing:{after:80},children:[txt("Discipline (KRA): ",{bold:true,size:22}),txt(disc+"% ",{bold:true,size:22,color:disc>=85?GREEN:disc>=60?GOLD:"B42318"}),txt("("+doneT.length+"/"+dueT.length+" due tasks done)",{size:20,color:MUTE})]}));
+
+  // Goals + tactics + notes
+  D.wgoals.forEach(g=>{
+    const gTacs=tacsToShow.filter(t=>t.wgoal_id===g.id);
+    if(!gTacs.length && !isCycle) return;
+    kids.push(new Paragraph({heading:HeadingLevel.HEADING_2,spacing:{before:180,after:60},children:[txt(esc(g.title),{bold:true,size:24,color:NAVY})]}));
+    if(g.lag_target)kids.push(new Paragraph({spacing:{after:80},children:[txt("🎯 Target: "+esc(g.lag_target),{size:20,color:GOLD})]}));
+    // goal notes
+    notesOf(g.id).forEach(n=>{
+      const dt=new Date(n.created_at).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+      kids.push(new Paragraph({spacing:{after:40},indent:{left:300},children:[txt("• "+esc(n.note),{size:19}),txt("  ("+dt+")",{size:16,color:MUTE,italics:true})]}));
+    });
+    gTacs.forEach(t=>{
+      const done=D.weekly.find(w=>w.tactic_id===t.id&&w.week_no===t.focus_week&&w.done);
+      kids.push(new Paragraph({spacing:{before:80,after:20},children:[
+        txt((done?"✓ ":"○ ")+esc(t.title),{bold:true,size:21,color:done?GREEN:"333333"}),
+        txt("  [W"+(t.focus_week||'-')+(t.assigned_name?" · "+esc(t.assigned_name):"")+"]",{size:17,color:MUTE})
+      ]}));
+      const ns=notesOf(t.id);
+      if(ns.length){
+        ns.forEach(n=>{
+          const dt=new Date(n.created_at).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+          const exp=n.expected_date?" · 🎯 by "+new Date(n.expected_date).toLocaleDateString('en-IN',{day:'numeric',month:'short'}):"";
+          kids.push(new Paragraph({spacing:{after:30},indent:{left:500},children:[txt("– "+esc(n.note),{size:19}),txt("  ("+dt+(n.met_with?" · 👤"+esc(n.met_with):"")+exp+")",{size:16,color:MUTE,italics:true})]}));
+        });
+      }
+    });
+  });
+
+  // Figures (cycle summary me)
+  if(isCycle){
+    kids.push(new Paragraph({heading:HeadingLevel.HEADING_2,spacing:{before:220,after:80},children:[txt("Expansion Financials",{bold:true,size:24,color:NAVY})]}));
+    const figs=[["Total Investment","₹36.2 Cr"],["Funding","40% Loan (₹14.5 Cr) + 60% Own/JV (₹21.7 Cr)"],["Revenue","₹36 → 60 → 85 → 100 Cr"],["Capacity","200 → 480 ton/month (2.4x)"],["Margin","13% → ~18% (premium)"],["Payback","~3 years"]];
+    kids.push(new Table({width:{size:9000,type:WidthType.DXA},columnWidths:[3200,5800],rows:figs.map(f=>new TableRow({children:[cell([txt(f[0],{bold:true,color:NAVY})],{w:3200,fill:LIGHT}),cell([txt(f[1])],{w:5800})]}))}));
+  }
+
+  kids.push(new Paragraph({spacing:{before:220},alignment:AlignmentType.CENTER,children:[txt("Generated from Mayur Plan — live execution system",{size:16,color:MUTE,italics:true})]}));
+
+  const doc=new Document({styles:{default:{document:{run:{font:"Arial",size:20}}}},sections:[{children:kids}]});
+  toast('Summary ban rahi hai...');
+  const blob=await Packer.toBlob(doc);
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download=(isCycle?'Cycle_Summary_':'Week'+curW+'_Summary_')+new Date().toISOString().slice(0,10)+'.docx';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  toast('Summary download ho gayi 📄');
+}
+
 async function loadW12(){
   const root=document.getElementById('view-w12');
   root.innerHTML='<div class="empty">Loading...</div>';
@@ -1091,6 +1177,9 @@ async function loadW12(){
       allNotes=nt||[];
     }
   }
+  // summary ke liye data global store
+  window.__w12={cyc,curWeek,wkRange,wgoals:wgoals||[],tactics,weekly,allNotes,allCycles};
+
   // helper: kisi parent ki notes ka inline HTML
   window.__notesHtml=function(pid){
     const ns=allNotes.filter(n=>n.parent_id===pid);
@@ -1133,6 +1222,10 @@ async function loadW12(){
       ${allCycles.map(c=>`<option value="${c.id}" ${c.id===cyc.id?'selected':''}>${c.cycle_no?'Cycle '+c.cycle_no+' — ':''}${esc(c.title.replace(/^Cycle \d+ — /,''))}${c.status==='active'?' (active)':''}</option>`).join('')}
     </select>
     ${cyc.status!=='active'?`<button class="btn sm" onclick="activateCycle('${cyc.id}')">Is cycle ko active karo</button>`:''}
+  </div>
+  <div class="sum-btns">
+    <button class="btn sm ghost" onclick="downloadSummary('week')">📄 Is Week ki Summary</button>
+    <button class="btn sm ghost" onclick="downloadSummary('cycle')">📄 Poore Cycle ki Summary</button>
   </div>
   <div class="w12-head">
     <div class="w12-title">${esc(cyc.title)}</div>
