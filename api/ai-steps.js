@@ -50,6 +50,22 @@ Output:
 
 Sirf is JSON me jawab do (no markdown):
 {"english":"...","hinglish":"..."}`;
+  } else if (mode === 'email') {
+    expectJson = 'object';
+    prompt = `Tum ek business writer ho. Founder ka ek note/update hai. Isse ek professional EMAIL banao (English me) jo wo kisi partner, CA, vendor ya client ko bhej sake. Matlab wahi rakho jo note me hai — naya fact mat jodo. Email polite, clear aur short ho.
+
+Founder ka note: "${idea}"
+
+Sirf is JSON me jawab do (no markdown):
+{"subject":"<short clear subject line>","body":"<email body - greeting, main point(s), polite closing. Sign off as 'Nitin Nagpal'>"}`;
+  } else if (mode === 'whatsapp') {
+    expectJson = 'object';
+    prompt = `Tum ek business writer ho. Founder ka ek note/update hai. Isse ek professional WhatsApp message banao (Hinglish me — Hindi-English mix, business-like par friendly). Matlab wahi rakho — naya fact mat jodo. Message short ho (2-5 lines), greeting se shuru, point clear, polite end.
+
+Founder ka note: "${idea}"
+
+Sirf is JSON me jawab do (no markdown):
+{"text":"<whatsapp message>"}`;
   } else if (mode === 'tactics') {
     prompt = `Tum ek business coach ho jo "12 Week Year" framework jaanta hai. Niche ek 12-week goal diya hai (Hinglish me ho sakta hai). Iske liye 4-6 TACTICS banao.
 
