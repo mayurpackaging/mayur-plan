@@ -824,12 +824,25 @@ async function loadGoals(){
   const root=document.getElementById('view-goals');
   if(error){root.innerHTML='<div class="empty">Error: '+esc(error.message)+'</div>';return}
   if(!goals.length){root.innerHTML='<div class="empty">Abhi koi goal nahi. Inbox se kuch Execute karo 🎯</div>';return}
+  // saari goal notes ek saath (inline display ke liye)
+  const gIds=goals.map(g=>g.id);
+  const {data:gNotes}=await sb.from('plan_notes').select('*').in('parent_id',gIds).order('created_at',{ascending:false});
+  const goalNotesHtml=(gid)=>{
+    const ns=(gNotes||[]).filter(n=>n.parent_id===gid);
+    if(!ns.length)return '';
+    return `<div class="inline-notes" style="margin:8px 15px 4px">`+ns.slice(0,3).map(n=>{
+      const dt=new Date(n.created_at).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+      const att=n.attachment_url?`<a class="iln-att" href="${n.attachment_url}" target="_blank" onclick="event.stopPropagation()">📎 ${esc((n.attachment_name||'File').slice(0,25))}</a>`:'';
+      return `<div class="iln"><span class="iln-dot">●</span><div><div class="iln-txt">${esc(n.note)}</div>${att}<div class="iln-meta">${dt}</div></div></div>`;
+    }).join('')+`</div>`;
+  };
   // fetch all steps progress
   let html='<div class="sec-title">Active Goals</div>';
   for(const g of goals){
     const prog=await goalProgress(g.id);
     const rag=prog.pct>=70?'b-green':prog.pct>=30?'b-amber':'b-red';
     const ragTxt=prog.pct>=70?'On track':prog.pct>=30?'In progress':'Just started';
+    const safeT=esc(g.title).replace(/'/g,"\\'");
     html+=`
       <div class="goal">
         <div class="goal-head" onclick="toggleGoal('${g.id}')">
@@ -838,8 +851,10 @@ async function loadGoals(){
           <div><span class="goal-cat">${esc(g.category||'')}</span>
             <span class="badge ${rag}" style="margin-left:6px">${ragTxt}</span>
             <span class="meta" style="margin-left:6px">${prog.done}/${prog.total} steps</span>
-            ${g.assigned_name?`<span class="who-chip">👤 ${esc(g.assigned_name)}</span>`:''}</div>
+            ${g.assigned_name?`<span class="who-chip">👤 ${esc(g.assigned_name)}</span>`:''}
+            <button class="mini-edit" onclick="event.stopPropagation();openNotes('goal','${g.id}','${safeT}')" title="Notes + attachment">📝</button></div>
         </div>
+        ${goalNotesHtml(g.id)}
         <div id="g-detail-${g.id}" class="hide" style="padding:0 15px 14px"></div>
       </div>`;
   }
@@ -878,12 +893,15 @@ async function toggleGoal(goalId){
         <button class="btn sm" onclick="saveGoalAssign('${goalId}')">Set</button>
       </div>
     </div>
-    <div class="steps">`+steps.map(s=>`
+    <div class="steps">`+steps.map(s=>{
+    const safeS=esc(s.title).replace(/'/g,"\\'");
+    return `
     <div class="step-wrap">
       <label class="step ${s.is_done?'done':''}">
         <input type="checkbox" ${s.is_done?'checked':''} onchange="toggleStep('${s.id}','${goalId}',this.checked)">
         <span onclick="event.preventDefault();toggleStepDetail('${s.id}')">${esc(s.title)}${s.assigned_name?` <span class="who-chip sm">👤 ${esc(s.assigned_name)}</span>`:''}</span>
-        <button class="step-exp" onclick="event.preventDefault();toggleStepDetail('${s.id}')" title="Details">${s.notes?'📝':'＋'}</button>
+        <button class="step-exp" onclick="event.preventDefault();openNotes('step','${s.id}','${safeS}')" title="Notes + attachment">📝</button>
+        <button class="step-exp" onclick="event.preventDefault();toggleStepDetail('${s.id}')" title="Details">${s.notes?'🗒':'＋'}</button>
       </label>
       <div id="sd-${s.id}" class="step-detail hide">
         <textarea id="note-${s.id}" placeholder="Details / notes likho... (kya hua, kya pending)">${esc(s.notes||'')}</textarea>
@@ -900,7 +918,7 @@ async function toggleGoal(goalId){
           </select>
         </div>
       </div>
-    </div>`).join('')+'</div>';
+    </div>`}).join('')+'</div>';
 }
 
 async function getGoalAssign(goalId){
@@ -1769,6 +1787,23 @@ async function loadHome(){
     }
   }
 
+  // ===== GOAL STEPS follow-up (Goals tab wale kaam bhi track ho) =====
+  try{
+    const {data:dSteps}=await sb.from('plan_steps').select('id,title,assigned_name,created_at,is_done').eq('is_done',false).not('assigned_name','is',null);
+    const stepsD=(dSteps||[]).filter(s=>s.assigned_name&&s.assigned_name.trim().toLowerCase()!=='nitin');
+    if(stepsD.length){
+      const sIds=stepsD.map(s=>s.id);
+      const {data:sNotes}=await sb.from('plan_notes').select('parent_id,created_at').in('parent_id',sIds);
+      stepsD.forEach(s=>{
+        const tn=(sNotes||[]).filter(n=>n.parent_id===s.id).map(n=>new Date(n.created_at).getTime());
+        const base=tn.length?Math.max(...tn):new Date(s.created_at).getTime();
+        const days=Math.floor((Date.now()-base)/(24*3600*1000));
+        if(days>=3)followUps.push({t:{id:s.id,title:s.title,assigned_name:s.assigned_name},days,hasNote:tn.length>0,isStep:true});
+      });
+      followUps.sort((a,b)=>b.days-a.days);
+    }
+  }catch(e){}
+
   // today's daily score
   const {data:dlogs}=await sb.from('plan_daily').select('category').eq('owner_id',ME.id).eq('log_date',today);
   let dScore=0;(dlogs||[]).forEach(l=>dScore+=CAT_WEIGHT[l.category]||1);
@@ -1826,7 +1861,8 @@ async function loadHome(){
       ${followUps.slice(0,6).map(f=>{
         const sev=f.days>=5?'fu-red':'fu-amber';
         const safe=esc(f.t.title).replace(/'/g,"\\'");
-        return `<div class="hf-item" onclick="openNotes('tactic','${f.t.id}','${safe}')" style="cursor:pointer">
+        const pt=f.isStep?'step':'tactic';
+        return `<div class="hf-item" onclick="openNotes('${pt}','${f.t.id}','${safe}')" style="cursor:pointer">
           <div class="hf-dot ${sev}">${f.days}d</div>
           <div class="hf-t">${esc(f.t.title)}<div class="fu-sub">👤 ${esc(f.t.assigned_name)} · ${f.hasNote?f.days+' din se koi update nahi':'abhi tak koi update nahi aaya'}</div></div>
           <div class="hf-chip">📝 Follow up</div>
@@ -2327,6 +2363,7 @@ async function renderDaily(){
         <button class="btn ghost sm" onclick="polishDaily()">✨ Professional</button>
         <button class="btn" id="dLogBtn" onclick="addDaily()">Log karo</button>
       </div>
+      <div style="margin-top:8px"><input type="file" id="dailyFile" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv" style="font-size:12px"> <span style="font-size:11px;color:var(--muted)">📎 optional</span></div>
       <div id="dPolishOut"></div>
     </div>`;
     html+='<div id="timerBox"></div>';
@@ -2374,6 +2411,7 @@ async function renderDaily(){
       <div class="dlog-cat" style="background:${cat.c}">${cat.e}</div>
       <div class="dlog-body">
         <div class="dlog-txt">${esc(l.clean_text||l.raw_text)}</div>
+        ${l.attachment_url?`<a class="iln-att" href="${l.attachment_url}" target="_blank">📎 ${esc((l.attachment_name||'File').slice(0,28))}</a>`:''}
         <div class="dlog-meta">${esc(l.category||'Other')} · ${t}${l.who?' · '+esc(l.who):''}</div>
       </div>
       <button class="dlog-del" onclick="delDaily('${l.id}')" title="Delete">✕</button>
@@ -2533,23 +2571,43 @@ function shiftDaily(dir){
 async function addDaily(){
   const ta=document.getElementById('dailyText');
   const text=ta.value.trim();
-  if(!text){toast('Kuch likho ya bolo');return}
+  const fEl=document.getElementById('dailyFile');
+  const file=fEl&&fEl.files&&fEl.files[0];
+  if(!text&&!file){toast('Kuch likho ya bolo');return}
   const btn=document.getElementById('dLogBtn');
   btn.innerHTML='<span class="spinner"></span>';btn.disabled=true;
-  let category='Other',clean=text;
-  try{
-    const r=await fetch('/api/ai-steps',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({idea:text,mode:'daily'})});
-    const j=await r.json();
-    if(j.category)category=j.category;
-    if(j.clean)clean=j.clean;
-  }catch(e){/* fallback: as-is */}
+
+  // file upload (agar hai)
+  let attachUrl=null,attachName=null;
+  if(file){
+    if(file.size>15*1024*1024){toast('File 15MB se badi hai');btn.innerHTML='Log karo';btn.disabled=false;return}
+    try{
+      const safe=file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+      const path=ME.id+'/daily/'+Date.now()+'_'+safe;
+      const {error:upErr}=await sb.storage.from('plan-files').upload(path,file);
+      if(upErr)throw upErr;
+      const {data:pub}=sb.storage.from('plan-files').getPublicUrl(path);
+      attachUrl=pub.publicUrl;attachName=file.name;
+    }catch(e){toast('File upload fail: '+e.message);btn.innerHTML='Log karo';btn.disabled=false;return}
+  }
+
+  let category='Other',clean=text||('📎 '+(attachName||'File'));
+  if(text){
+    try{
+      const r=await fetch('/api/ai-steps',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({idea:text,mode:'daily'})});
+      const j=await r.json();
+      if(j.category)category=j.category;
+      if(j.clean)clean=j.clean;
+    }catch(e){/* fallback: as-is */}
+  }
   const {error}=await sb.from('plan_daily').insert({
-    owner_id:ME.id,raw_text:text,clean_text:clean,category,log_date:todayStr()
+    owner_id:ME.id,raw_text:text||clean,clean_text:clean,category,log_date:todayStr(),attachment_url:attachUrl,attachment_name:attachName
   });
   btn.innerHTML='Log karo';btn.disabled=false;
   if(error){toast('Error: '+error.message);return}
-  ta.value='';toast('Log ho gaya 📓');renderDaily();
+  ta.value='';if(fEl)fEl.value='';
+  toast('Log ho gaya 📓'+(attachUrl?' (file ke saath)':''));renderDaily();
 }
 
 async function delDaily(id){
