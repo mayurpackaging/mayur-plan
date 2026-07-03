@@ -540,6 +540,8 @@
   .iln-dot{color:var(--navy);font-size:9px;line-height:1.6;flex:0 0 auto}
   .iln-txt{font-size:13px;line-height:1.35;color:var(--txt)}
   .iln-meta{font-size:10px;color:var(--muted);margin-top:1px}
+  .note-att{display:inline-block;font-size:12px;background:#e8f0fb;color:#1F4E79;padding:5px 11px;border-radius:8px;margin-top:6px;text-decoration:none;font-weight:600;border:1px solid #cfe0f0}
+  .iln-att{display:inline-block;font-size:11px;background:#e8f0fb;color:#1F4E79;padding:3px 9px;border-radius:7px;margin:3px 0;text-decoration:none;font-weight:600}
   @media(max-width:480px){
     .bc-mission{font-size:32px}.bc-title{font-size:24px}.bs-big{font-size:40px}
     .bp-num{font-size:30px}.bp-stat{padding:14px 12px}.bs-card{width:130px}
@@ -1255,7 +1257,8 @@ async function loadW12(){
     return `<div class="inline-notes">`+ns.map(n=>{
       const dt=new Date(n.created_at).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
       const exp=n.expected_date?` · 🎯 ${new Date(n.expected_date).toLocaleDateString('en-IN',{day:'numeric',month:'short'})}`:'';
-      return `<div class="iln"><span class="iln-dot">●</span><div><div class="iln-txt">${esc(n.note)}</div><div class="iln-meta">${dt}${n.met_with?' · 👤 '+esc(n.met_with):''}${exp}</div></div></div>`;
+      const att=n.attachment_url?`<a class="iln-att" href="${n.attachment_url}" target="_blank" onclick="event.stopPropagation()">📎 ${esc((n.attachment_name||'File').slice(0,25))}</a>`:'';
+      return `<div class="iln"><span class="iln-dot">●</span><div><div class="iln-txt">${esc(n.note)}</div>${att}<div class="iln-meta">${dt}${n.met_with?' · 👤 '+esc(n.met_with):''}${exp}</div></div></div>`;
     }).join('')+`</div>`;
   };
   // execution score for current week
@@ -1561,9 +1564,13 @@ async function openNotes(ptype,pid,ptitle){
           <label style="font-size:12px;color:var(--muted)">Kab tak complete hoga? (optional)</label>
           <input type="date" id="noteExpected">
         </div>
+        <div class="field">
+          <label style="font-size:12px;color:var(--muted)">📎 File attach karo (optional — photo, PDF, Word, Excel)</label>
+          <input type="file" id="noteFile" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv" style="font-size:13px">
+        </div>
         <div class="modal-actions">
           <button class="btn gray" onclick="closeModal()">Band karo</button>
-          <button class="btn" onclick="addNote('${ptype}','${pid}')">+ Note add karo</button>
+          <button class="btn" id="noteAddBtn" onclick="addNote('${ptype}','${pid}')">+ Note add karo</button>
         </div>
         <div id="noteHistory" style="margin-top:14px"><div class="empty" style="padding:14px">Loading...</div></div>
       </div>
@@ -1581,9 +1588,10 @@ async function loadNotes(ptype,pid){
   el.innerHTML='<div class="note-hist-h">History (timeline)</div>'+data.map(n=>{
     const dt=new Date(n.created_at).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
     const exp=n.expected_date?`<div class="note-exp">🎯 Expected complete: ${new Date(n.expected_date).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}</div>`:'';
+    const att=n.attachment_url?`<a class="note-att" href="${n.attachment_url}" target="_blank">📎 ${esc(n.attachment_name||'File dekho')}</a>`:'';
     return `<div class="note-item">
       <div class="note-txt">${esc(n.note)}</div>
-      ${exp}
+      ${exp}${att}
       <div class="note-meta">${dt}${n.met_with?' · 👤 '+esc(n.met_with):''} <button class="note-del" onclick="delNote('${n.id}','${ptype}','${pid}')">✕</button></div>
     </div>`;
   }).join('');
@@ -1620,14 +1628,38 @@ function usesPolish(el){
 
 async function addNote(ptype,pid){
   const note=document.getElementById('noteText').value.trim();
-  if(!note){toast('Kuch likho');return}
+  const fileEl=document.getElementById('noteFile');
+  const file=fileEl&&fileEl.files&&fileEl.files[0];
+  if(!note&&!file){toast('Kuch likho ya file attach karo');return}
   const met=document.getElementById('noteWith').value.trim()||null;
   const exp=document.getElementById('noteExpected').value||null;
-  await sb.from('plan_notes').insert({owner_id:ME.id,parent_type:ptype,parent_id:pid,note,met_with:met,expected_date:exp});
+  const btn=document.getElementById('noteAddBtn');
+
+  let attachUrl=null,attachName=null;
+  if(file){
+    if(file.size>15*1024*1024){toast('File 15MB se badi hai — chhoti file lo');return}
+    if(btn){btn.disabled=true;btn.textContent='📎 Upload ho rahi...';}
+    try{
+      const safe=file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+      const path=ME.id+'/'+Date.now()+'_'+safe;
+      const {error:upErr}=await sb.storage.from('plan-files').upload(path,file);
+      if(upErr)throw upErr;
+      const {data:pub}=sb.storage.from('plan-files').getPublicUrl(path);
+      attachUrl=pub.publicUrl;attachName=file.name;
+    }catch(e){
+      toast('File upload fail: '+e.message);
+      if(btn){btn.disabled=false;btn.textContent='+ Note add karo';}
+      return;
+    }
+  }
+
+  await sb.from('plan_notes').insert({owner_id:ME.id,parent_type:ptype,parent_id:pid,note:note||('📎 '+(attachName||'File')),met_with:met,expected_date:exp,attachment_url:attachUrl,attachment_name:attachName});
   document.getElementById('noteText').value='';
   document.getElementById('noteWith').value='';
   document.getElementById('noteExpected').value='';
-  toast('Note save 📝');loadNotes(ptype,pid);
+  if(fileEl)fileEl.value='';
+  if(btn){btn.disabled=false;btn.textContent='+ Note add karo';}
+  toast('Note save 📝'+(attachUrl?' (file ke saath)':''));loadNotes(ptype,pid);
   if(ptype==='tactic'||ptype==='wgoal'){if(typeof loadW12==='function')loadW12();}
 }
 
