@@ -245,6 +245,9 @@
   .hf-dot{width:28px;height:28px;border-radius:9px;background:#eef5ff;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
   .hf-t{flex:1;font-size:14px;color:#1e293b;font-weight:500}
   .hf-chip{font-size:10px;background:#fff7e6;color:#9a6700;padding:3px 9px;border-radius:20px;font-weight:700;white-space:nowrap}
+  .hf-dot.fu-red{background:#fde8e8;color:#b42318;font-size:10px;font-weight:800}
+  .hf-dot.fu-amber{background:#fff4d6;color:#9a6700;font-size:10px;font-weight:800}
+  .fu-sub{font-size:11px;color:var(--muted);font-weight:400;margin-top:2px}
   .home-tiles{display:grid;grid-template-columns:1fr 1fr 1fr;gap:11px}
   .htile{border-radius:16px;padding:16px 8px;text-align:center;color:#fff;font-size:12px;font-weight:700;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.1)}
   .htile span{display:block;font-size:24px;margin-bottom:6px}
@@ -1727,7 +1730,7 @@ async function loadHome(){
 
   // --- gather data ---
   // active cycle + week + discipline
-  let cycleTitle='',cw=0,disc=100,missedCount=0,weekTactics=[],execPct=0;
+  let cycleTitle='',cw=0,disc=100,missedCount=0,weekTactics=[],execPct=0,followUps=[];
   const {data:cyc}=await sb.from('plan_cycles').select('*').eq('status','active').limit(1);
   if(cyc&&cyc.length){
     const c=cyc[0];cycleTitle=c.title.replace(/^Cycle \d+ — /,'');cw=weekOfCycle(c.start_date);
@@ -1744,6 +1747,25 @@ async function loadHome(){
       });
       disc=dueT?Math.round(dueD/dueT*100):100;
       execPct=wkT?Math.round(wkD/wkT*100):0;
+
+      // ===== DELEGATION FOLLOW-UP TRACKER =====
+      // jo kaam doosron ko diye (Nitin ke alawa) aur update nahi aa raha
+      const delegated=(tacs||[]).filter(t=>t.assigned_name&&t.assigned_name.trim().toLowerCase()!=='nitin');
+      const dIds=delegated.map(t=>t.id);
+      if(dIds.length){
+        const {data:dnotes}=await sb.from('plan_notes').select('parent_id,created_at').in('parent_id',dIds);
+        delegated.forEach(t=>{
+          const fw=t.focus_week||0;
+          const done=(wkly||[]).find(x=>x.tactic_id===t.id&&x.week_no===fw&&x.done);
+          if(done)return; // ho gaya to follow-up nahi
+          if(!(fw>0&&fw<=cw+1))return; // sirf abhi ke relevant kaam (due ya agla week)
+          const tn=(dnotes||[]).filter(n=>n.parent_id===t.id).map(n=>new Date(n.created_at).getTime());
+          const base=tn.length?Math.max(...tn):new Date(t.created_at).getTime();
+          const days=Math.floor((Date.now()-base)/(24*3600*1000));
+          if(days>=3)followUps.push({t,days,hasNote:tn.length>0});
+        });
+        followUps.sort((a,b)=>b.days-a.days);
+      }
     }
   }
 
@@ -1794,6 +1816,22 @@ async function loadHome(){
   if(missedCount){
     html+=`<div class="home-alert" onclick="switchTab('w12')">
       🔴 <b>${missedCount} kaam pending</b> hain (miss ho gaye) — KRA down. Dekho →
+    </div>`;
+  }
+
+  // ===== DELEGATION FOLLOW-UP section =====
+  if(followUps.length){
+    html+=`<div class="hsec">👥 Follow-up Zaroori (${followUps.length})</div>
+    <div class="hfocus">
+      ${followUps.slice(0,6).map(f=>{
+        const sev=f.days>=5?'fu-red':'fu-amber';
+        const safe=esc(f.t.title).replace(/'/g,"\\'");
+        return `<div class="hf-item" onclick="openNotes('tactic','${f.t.id}','${safe}')" style="cursor:pointer">
+          <div class="hf-dot ${sev}">${f.days}d</div>
+          <div class="hf-t">${esc(f.t.title)}<div class="fu-sub">👤 ${esc(f.t.assigned_name)} · ${f.hasNote?f.days+' din se koi update nahi':'abhi tak koi update nahi aaya'}</div></div>
+          <div class="hf-chip">📝 Follow up</div>
+        </div>`;
+      }).join('')}
     </div>`;
   }
 
