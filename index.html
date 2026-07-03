@@ -547,6 +547,14 @@
   .iln-txt{font-size:13px;line-height:1.35;color:var(--txt)}
   .iln-meta{font-size:10px;color:var(--muted);margin-top:1px}
   .note-att{display:inline-block;font-size:12px;background:#e8f0fb;color:#1F4E79;padding:5px 11px;border-radius:8px;margin-top:6px;text-decoration:none;font-weight:600;border:1px solid #cfe0f0}
+  .note-msgrow{display:flex;gap:6px;margin-top:7px}
+  .note-msg{background:#f1f5f9;border:1px solid var(--line);border-radius:8px;padding:5px 11px;font-size:11.5px;font-weight:600;color:var(--navy);cursor:pointer}
+  .note-msg:hover{background:#e8f0fb}
+  .msg-box{background:#f8fafc;border:1px solid #dbe4ee;border-radius:10px;padding:11px 13px;margin-top:8px}
+  .msg-sub{font-size:13px;margin-bottom:6px;color:var(--navy)}
+  .msg-txt{font-size:13px;line-height:1.5;color:var(--txt)}
+  .msg-actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+  .msg-actions a{text-decoration:none;display:inline-flex;align-items:center}
   .iln-att{display:inline-block;font-size:11px;background:#e8f0fb;color:#1F4E79;padding:3px 9px;border-radius:7px;margin:3px 0;text-decoration:none;font-weight:600}
   @media(max-width:480px){
     .bc-mission{font-size:32px}.bc-title{font-size:24px}.bs-big{font-size:40px}
@@ -1629,16 +1637,63 @@ async function loadNotes(ptype,pid){
   if(!el)return;
   if(error){el.innerHTML='<div class="empty" style="padding:14px">Error</div>';return}
   if(!data||!data.length){el.innerHTML='<div class="empty" style="padding:14px">Abhi koi note nahi. Upar se add karo.</div>';return}
+  window.__noteCache=window.__noteCache||{};
   el.innerHTML='<div class="note-hist-h">History (timeline)</div>'+data.map(n=>{
+    window.__noteCache[n.id]=n.note;
     const dt=new Date(n.created_at).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
     const exp=n.expected_date?`<div class="note-exp">🎯 Expected complete: ${new Date(n.expected_date).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}</div>`:'';
     const att=n.attachment_url?`<a class="note-att" href="${n.attachment_url}" target="_blank">📎 ${esc(n.attachment_name||'File dekho')}</a>`:'';
     return `<div class="note-item">
       <div class="note-txt">${esc(n.note)}</div>
       ${exp}${att}
+      <div class="note-msgrow">
+        <button class="note-msg" onclick="noteToMsg('${n.id}','email')">📧 Mail banao</button>
+        <button class="note-msg" onclick="noteToMsg('${n.id}','whatsapp')">💬 WhatsApp banao</button>
+      </div>
+      <div id="mc-${n.id}"></div>
       <div class="note-meta">${dt}${n.met_with?' · 👤 '+esc(n.met_with):''} <button class="note-del" onclick="delNote('${n.id}','${ptype}','${pid}')">✕</button></div>
     </div>`;
   }).join('');
+}
+
+async function noteToMsg(id,type){
+  const txt=window.__noteCache&&window.__noteCache[id];
+  if(!txt){toast('Note nahi mila');return}
+  const box=document.getElementById('mc-'+id);
+  box.innerHTML='<div class="polish-load">✨ '+(type==='email'?'Mail':'WhatsApp message')+' ban raha hai...</div>';
+  try{
+    const r=await fetch('/api/ai-steps',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({idea:txt,mode:type})});
+    const j=await r.json();
+    if(j.error){box.innerHTML='<div class="polish-load">Error: '+esc(j.error)+'</div>';return}
+    window.__msgCache=window.__msgCache||{};
+    if(type==='email'){
+      const full='Subject: '+(j.subject||'')+'\n\n'+(j.body||'');
+      window.__msgCache[id]=full;
+      box.innerHTML=`<div class="msg-box">
+        <div class="msg-sub">📧 <b>${esc(j.subject||'')}</b></div>
+        <div class="msg-txt">${esc(j.body||'').replace(/\n/g,'<br>')}</div>
+        <div class="msg-actions">
+          <button class="btn sm" onclick="copyMsg('${id}')">📋 Copy karo</button>
+          <a class="btn sm ghost" href="mailto:?subject=${encodeURIComponent(j.subject||'')}&body=${encodeURIComponent(j.body||'')}">📧 Mail app kholo</a>
+        </div>
+      </div>`;
+    }else{
+      window.__msgCache[id]=j.text||'';
+      box.innerHTML=`<div class="msg-box">
+        <div class="msg-txt">${esc(j.text||'').replace(/\n/g,'<br>')}</div>
+        <div class="msg-actions">
+          <button class="btn sm" onclick="copyMsg('${id}')">📋 Copy karo</button>
+          <a class="btn sm ghost" href="https://wa.me/?text=${encodeURIComponent(j.text||'')}" target="_blank">💬 WhatsApp kholo</a>
+        </div>
+      </div>`;
+    }
+  }catch(e){box.innerHTML='<div class="polish-load">Error: '+esc(e.message)+'</div>';}
+}
+function copyMsg(id){
+  const t=window.__msgCache&&window.__msgCache[id];
+  if(!t)return;
+  navigator.clipboard.writeText(t).then(()=>toast('Copy ho gaya 📋 — ab paste karo')).catch(()=>toast('Copy nahi hua, text select karke copy karo'));
 }
 
 async function polishNote(){
