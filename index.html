@@ -884,6 +884,23 @@ async function toggleGoal(goalId){
   const {data:tasks}=await sb.from('plan_tasks').select('id,title').in('project_id',pIds);
   const tIds=tasks.map(t=>t.id);
   const {data:steps}=await sb.from('plan_steps').select('*').in('task_id',tIds).order('sort_order');
+  // steps ki saari notes (inline timeline ke liye)
+  const stepIds=(steps||[]).map(s=>s.id);
+  let stepNotes=[];
+  if(stepIds.length){
+    const {data:sn}=await sb.from('plan_notes').select('*').in('parent_id',stepIds).order('created_at',{ascending:false});
+    stepNotes=sn||[];
+  }
+  const stepNotesHtml=(sid)=>{
+    const ns=stepNotes.filter(n=>n.parent_id===sid);
+    if(!ns.length)return '';
+    return `<div class="inline-notes" style="margin-left:26px">`+ns.map(n=>{
+      const dt=new Date(n.created_at).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+      const exp=n.expected_date?` · 🎯 ${new Date(n.expected_date).toLocaleDateString('en-IN',{day:'numeric',month:'short'})}`:'';
+      const att=n.attachment_url?`<a class="iln-att" href="${n.attachment_url}" target="_blank" onclick="event.stopPropagation()">📎 ${esc((n.attachment_name||'File').slice(0,25))}</a>`:'';
+      return `<div class="iln"><span class="iln-dot">●</span><div><div class="iln-txt">${esc(n.note)}</div>${att}<div class="iln-meta">${dt}${n.met_with?' · 👤 '+esc(n.met_with):''}${exp}</div></div></div>`;
+    }).join('')+`</div>`;
+  };
   const gAssign=await getGoalAssign(goalId);
   box.innerHTML=`
     <div class="goal-assign">
@@ -918,6 +935,7 @@ async function toggleGoal(goalId){
           </select>
         </div>
       </div>
+      ${stepNotesHtml(s.id)}
     </div>`}).join('')+'</div>';
 }
 
@@ -1687,6 +1705,7 @@ async function addNote(ptype,pid){
   if(btn){btn.disabled=false;btn.textContent='+ Note add karo';}
   toast('Note save 📝'+(attachUrl?' (file ke saath)':''));loadNotes(ptype,pid);
   if(ptype==='tactic'||ptype==='wgoal'){if(typeof loadW12==='function')loadW12();}
+  if(ptype==='goal'||ptype==='step'){const gv=document.getElementById('view-goals');if(gv&&!gv.classList.contains('hide'))loadGoals();}
 }
 
 async function delNote(id,ptype,pid){
