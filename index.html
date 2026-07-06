@@ -539,6 +539,23 @@
   .cw-item.t-cal{background:#fff0e0}
   .cw-item.t-tactic{background:#e0f2f0}
   .cw-empty{font-size:11px;color:#ccc;text-align:center;padding:8px 0}
+  /* follow-up scheduler */
+  .fu-section{background:#fff;border-radius:16px;padding:14px 16px;margin-bottom:16px;box-shadow:0 3px 12px rgba(0,0,0,.05)}
+  .fu-sec-h{font-size:15px;font-weight:800;color:var(--navy);margin-bottom:10px}
+  .fscore{border-radius:12px;padding:11px 14px;margin-bottom:11px}
+  .fscore-g{background:#e8f6ee}.fscore-a{background:#fff4d6}.fscore-r{background:#fde8e8}
+  .fsc-main{font-size:14px;color:var(--txt)}.fsc-main b{font-size:20px;color:var(--navy)}
+  .fsc-sub{font-size:11.5px;color:var(--muted);margin-top:2px}
+  .fu-card{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid #f1f5f9}
+  .fu-card:last-child{border-bottom:none}
+  .fu-od{background:#fff6f6;margin:0 -8px;padding:11px 8px;border-radius:8px;border-bottom:none}
+  .fu-check{width:26px;height:26px;border-radius:50%;border:2px solid #cbd5e1;background:none;font-size:14px;color:#94a3b8;cursor:pointer;flex-shrink:0}
+  .fu-check:hover{border-color:var(--green);color:var(--green)}
+  .fu-info{flex:1}
+  .fu-title{font-size:14px;color:var(--txt);font-weight:500}
+  .fu-meta{font-size:11px;color:var(--muted);margin-top:2px}
+  .fu-slip{background:#fde8e8;color:#b42318;padding:1px 7px;border-radius:10px;font-weight:700;margin-left:4px}
+  .fu-mini{background:#f1f5f9;border:none;border-radius:7px;padding:5px 8px;font-size:13px;cursor:pointer}
 
   /* inline notes under tactic/goal */
   .inline-notes{margin:6px 0 4px 8px;border-left:2px solid #e3e8ef;padding-left:10px}
@@ -1761,6 +1778,19 @@ async function addNote(ptype,pid){
   toast('Note save 📝'+(attachUrl?' (file ke saath)':''));loadNotes(ptype,pid);
   if(ptype==='tactic'||ptype==='wgoal'){if(typeof loadW12==='function')loadW12();}
   if(ptype==='goal'||ptype==='step'){const gv=document.getElementById('view-goals');if(gv&&!gv.classList.contains('hide'))loadGoals();}
+
+  // agla follow-up schedule karo
+  setTimeout(async()=>{
+    const when=prompt('📅 Agla follow-up kab? (date daalo: YYYY-MM-DD)\n\nJaise 2026-07-05\n\n(Cancel dabao agar follow-up nahi chahiye)',exp||'');
+    if(when&&/^\d{4}-\d{2}-\d{2}$/.test(when.trim())){
+      const d=when.trim();
+      const title=(note||attachName||'Follow-up').slice(0,120);
+      await sb.from('plan_followups').insert({owner_id:ME.id,title,source_type:ptype,source_id:pid,assigned_name:met||null,first_date:d,due_date:d});
+      toast('Follow-up '+new Date(d).toLocaleDateString('en-IN',{day:'numeric',month:'short'})+' ko scheduler me add ✓');
+    }else if(when!==null){
+      toast('Date galat format — follow-up nahi bana (YYYY-MM-DD daalo)');
+    }
+  },400);
 }
 
 async function delNote(id,ptype,pid){
@@ -2311,6 +2341,84 @@ function renderBoardSlide(){
 }
 
 
+// ====== FOLLOW-UP SCHEDULER (task lifecycle) ======
+async function carryForwardFollowups(){
+  // pending followups jinki due_date < aaj → aaj pe le aao, slip +1
+  const today=todayStr();
+  const {data:overdue}=await sb.from('plan_followups').select('*').eq('owner_id',ME.id).eq('status','pending').lt('due_date',today);
+  if(overdue&&overdue.length){
+    for(const f of overdue){
+      const daysMissed=Math.floor((new Date(today)-new Date(f.due_date))/(24*3600*1000));
+      await sb.from('plan_followups').update({due_date:today,slip_count:(f.slip_count||0)+daysMissed,updated_at:new Date().toISOString()}).eq('id',f.id);
+    }
+  }
+}
+
+async function followupScore(){
+  const {data:all}=await sb.from('plan_followups').select('slip_count,status,done_on_time').eq('owner_id',ME.id);
+  if(!all||!all.length)return null;
+  const done=all.filter(f=>f.status==='done');
+  const onTime=done.filter(f=>f.done_on_time).length;
+  const totalSlips=all.reduce((s,f)=>s+(f.slip_count||0),0);
+  const pct=done.length?Math.round(onTime/done.length*100):100;
+  return {pct,onTime,doneCount:done.length,totalSlips,pending:all.filter(f=>f.status==='pending').length};
+}
+
+async function renderFollowupSection(){
+  const {data:fus}=await sb.from('plan_followups').select('*').eq('owner_id',ME.id).eq('status','pending').order('due_date');
+  const score=await followupScore();
+  let html='';
+  if(score){
+    const sc=score.pct>=80?'g':score.pct>=50?'a':'r';
+    html+=`<div class="fscore fscore-${sc}">
+      <div class="fsc-main"><b>${score.pct}%</b> on-time score</div>
+      <div class="fsc-sub">${score.doneCount} done · ${score.pending} pending · ${score.totalSlips} total slips</div>
+    </div>`;
+  }
+  if(fus&&fus.length){
+    const today=todayStr();
+    html+=fus.map(f=>{
+      const isToday=f.due_date===today;
+      const overdue=f.due_date<today;
+      const slip=f.slip_count>0?`<span class="fu-slip">${f.slip_count}x delay</span>`:'';
+      const safe=esc(f.title).replace(/'/g,"\\'");
+      return `<div class="fu-card ${overdue?'fu-od':isToday?'fu-td':''}">
+        <button class="fu-check" onclick="doneFollowup('${f.id}')" title="Complete">○</button>
+        <div class="fu-info">
+          <div class="fu-title">${esc(f.title)}</div>
+          <div class="fu-meta">📅 ${new Date(f.due_date).toLocaleDateString('en-IN',{day:'numeric',month:'short'})}${f.assigned_name?' · 👤 '+esc(f.assigned_name):''} ${slip}</div>
+        </div>
+        <div class="fu-acts">
+          <button class="fu-mini" onclick="forwardFollowup('${f.id}','${safe}')" title="Kisi aur ko forward">➡️</button>
+        </div>
+      </div>`;
+    }).join('');
+  }else{
+    html+='<div class="hc-empty">Koi pending follow-up nahi 🎉</div>';
+  }
+  return html;
+}
+
+async function doneFollowup(id){
+  const {data:f}=await sb.from('plan_followups').select('*').eq('id',id).single();
+  if(!f)return;
+  const onTime=f.slip_count===0; // pehli date pe hua?
+  await sb.from('plan_followups').update({status:'done',done_date:todayStr(),done_on_time:onTime,updated_at:new Date().toISOString()}).eq('id',id);
+  toast(onTime?'✓ Time pe complete! Score achha 🟢':'✓ Complete (delay hua tha)');
+  if(document.getElementById('view-cal')&&!document.getElementById('view-cal').classList.contains('hide'))renderCal();
+  if(document.getElementById('view-home')&&!document.getElementById('view-home').classList.contains('hide'))loadHome();
+}
+
+async function forwardFollowup(id,title){
+  const who=prompt('👤 Kisko forward karna hai? (naam)\n\nKaam: '+title);
+  if(!who||!who.trim())return;
+  const when=prompt('📅 Nayi date kab? (YYYY-MM-DD)',todayStr());
+  if(!when||!/^\d{4}-\d{2}-\d{2}$/.test(when.trim())){toast('Date galat');return}
+  await sb.from('plan_followups').update({assigned_name:who.trim(),due_date:when.trim(),updated_at:new Date().toISOString()}).eq('id',id);
+  toast('Forward kiya '+who.trim()+' ko ✓');
+  if(document.getElementById('view-cal')&&!document.getElementById('view-cal').classList.contains('hide'))renderCal();
+}
+
 // ====== CALENDAR (kisi bhi din ka slot) ======
 let CAL_DATE=null;
 let CAL_MODE='day';
@@ -2360,6 +2468,14 @@ async function renderCal(){
       <button class="cal-mode ${CAL_MODE==='week'?'on':''}" onclick="calModeSet('week')">Hafta</button>
       <button class="cal-mode" onclick="CAL_DATE=todayStr();renderCal()">Aaj</button>
     </div>
+  </div>`;
+
+  // ===== Follow-up scheduler (pending kaam, carry-forward, score) =====
+  await carryForwardFollowups();
+  const fuHtml=await renderFollowupSection();
+  html+=`<div class="fu-section">
+    <div class="fu-sec-h">🔔 Follow-up Scheduler</div>
+    ${fuHtml}
   </div>`;
 
   if(CAL_MODE==='day'){
