@@ -257,6 +257,38 @@
   .ht-d{background:linear-gradient(135deg,#e11d48,#fb7185)}
   .ht-e{background:linear-gradient(135deg,#ea580c,#fb923c)}
   .ht-f{background:linear-gradient(135deg,#0891b2,#06b6d4)}
+
+  /* ===== STRATEGY TAB ===== */
+  .strat-hero{background:linear-gradient(135deg,#7c3aed,#a855f7);border-radius:20px;padding:20px;color:#fff;margin-bottom:8px;box-shadow:0 8px 24px rgba(124,58,237,.3)}
+  .sh-title{font-size:22px;font-weight:800}
+  .sh-sub{font-size:13px;opacity:.9;margin-top:3px}
+  .strat-meters{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:10px}
+  .meter{background:#fff;border-radius:14px;padding:13px;box-shadow:0 2px 10px rgba(0,0,0,.05);cursor:pointer}
+  .meter-top{display:flex;justify-content:space-between;align-items:baseline;font-size:12px;color:var(--muted)}
+  .meter-top b{font-size:22px}
+  .meter-bar{height:7px;background:#eef1f5;border-radius:4px;margin:7px 0 4px;overflow:hidden}
+  .meter-bar i{display:block;height:100%;border-radius:4px}
+  .meter-tgt{font-size:10px;color:var(--muted)}
+  .ctrack{background:#fff;border-radius:14px;padding:6px 14px;box-shadow:0 2px 10px rgba(0,0,0,.05);max-height:340px;overflow-y:auto}
+  .ct-row{display:flex;align-items:center;gap:11px;padding:10px 0;border-bottom:1px solid #f1f5f9;cursor:pointer}
+  .ct-row:last-child{border-bottom:none}
+  .ct-abc{width:26px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff;flex-shrink:0}
+  .ct-a{background:#157347}.ct-b{background:#C9922E}.ct-c{background:#999}
+  .ct-info{flex:1}
+  .ct-name{font-size:14px;font-weight:500;color:var(--txt)}
+  .ct-meta{font-size:11px;color:var(--muted);margin-top:1px}
+  .ct-brand{background:#ede9fe;color:#7c3aed;padding:1px 7px;border-radius:10px;font-weight:700;font-size:10px}
+  .ct-trader{background:#e0f2fe;color:#0369a1;padding:1px 7px;border-radius:10px;font-weight:700;font-size:10px}
+  .fu-check.done{border-color:var(--green);background:var(--green);color:#fff}
+  .sum-btns-one{width:100%}
+  .two-engine{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+  .eng-card{border-radius:16px;padding:15px;color:#fff;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.12)}
+  .eng-exp{background:linear-gradient(135deg,#1F4E79,#2d6ba3)}
+  .eng-strat{background:linear-gradient(135deg,#7c3aed,#a855f7)}
+  .eng-ic{font-size:22px}
+  .eng-t{font-size:16px;font-weight:800;margin-top:5px}
+  .eng-s{font-size:12px;opacity:.9;margin-top:2px}
+  .eng-d{font-size:11px;opacity:.75;margin-top:6px}
   .note-hist-h{font-size:12px;color:var(--muted);font-weight:600;margin-bottom:8px;text-transform:uppercase}
   .note-item{background:var(--surface-2,#f4f6f9);border:1px solid var(--line);border-radius:9px;padding:10px 12px;margin-bottom:8px}
   .note-txt{font-size:14px;line-height:1.4}
@@ -630,6 +662,7 @@
       <div class="tab on" data-tab="home" onclick="switchTab('home')">🏠 Home</div>
       <div class="tab" data-tab="vision" onclick="switchTab('vision')">🎯 Vision</div>
       <div class="tab" data-tab="board" onclick="switchTab('board')">📊 Board</div>
+      <div class="tab" data-tab="strategy" onclick="switchTab('strategy')">📈 Strategy</div>
       <div class="tab" data-tab="daily" onclick="switchTab('daily')">📓 Daily</div>
       <div class="tab" data-tab="today" onclick="switchTab('today')">☀️ Aaj</div>
       <div class="tab" data-tab="cal" onclick="switchTab('cal')">📆 Calendar</div>
@@ -643,6 +676,7 @@
     <div id="view-home"></div>
     <div id="view-vision" class="hide"></div>
     <div id="view-board" class="hide"></div>
+    <div id="view-strategy" class="hide"></div>
     <div id="view-daily" class="hide"></div>
     <div id="view-today" class="hide"></div>
     <div id="view-cal" class="hide"></div>
@@ -710,12 +744,13 @@ async function initApp(){
 // ====== TABS ======
 function switchTab(t){
   document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x.dataset.tab===t));
-  ['home','vision','board','daily','today','cal','dash','w12','inbox','goals','parked'].forEach(v=>{
+  ['home','vision','board','strategy','daily','today','cal','dash','w12','inbox','goals','parked'].forEach(v=>{
     document.getElementById('view-'+v).classList.toggle('hide',v!==t);
   });
   if(t==='home')loadHome();
   if(t==='vision')loadVision();
   if(t==='board')loadBoard();
+  if(t==='strategy')loadStrategy();
   if(t==='daily')loadDaily();
   if(t==='today')loadToday();
   if(t==='cal')loadCal();
@@ -1777,6 +1812,7 @@ async function addNote(ptype,pid){
   if(btn){btn.disabled=false;btn.textContent='+ Note add karo';}
   toast('Note save 📝'+(attachUrl?' (file ke saath)':''));loadNotes(ptype,pid);
   if(ptype==='tactic'||ptype==='wgoal'){if(typeof loadW12==='function')loadW12();}
+  if(ptype==='strat_tactic'){if(typeof loadStrategy==='function')loadStrategy();}
   if(ptype==='goal'||ptype==='step'){const gv=document.getElementById('view-goals');if(gv&&!gv.classList.contains('hide'))loadGoals();}
 
   // agla follow-up schedule karo
@@ -2025,13 +2061,30 @@ async function loadHome(){
     </div>`;
   }
 
+  // Expansion + Strategy dono ek nazar me
+  html+=`<div class="hsec">🎯 Do Engine — Ek Nazar</div>
+  <div class="two-engine">
+    <div class="eng-card eng-exp" onclick="switchTab('w12')">
+      <div class="eng-ic">🏗️</div>
+      <div class="eng-t">Expansion</div>
+      <div class="eng-s">${cw?'Week '+cw+'/12':'Plant setup'}</div>
+      <div class="eng-d">${cw?esc(cycleTitle.slice(0,20)):'JV, Land, Machine'}</div>
+    </div>
+    <div class="eng-card eng-strat" onclick="switchTab('strategy')">
+      <div class="eng-ic">📈</div>
+      <div class="eng-t">Strategy</div>
+      <div class="eng-s">Premium Growth</div>
+      <div class="eng-d">Brands · Pricing · Retention</div>
+    </div>
+  </div>`;
+
   // Quick Access tiles (colourful)
   html+=`<div class="hsec">🚀 Quick Access</div>
   <div class="home-tiles">
     <div class="htile ht-a" onclick="switchTab('board')"><span>📊</span>Board</div>
     <div class="htile ht-b" onclick="switchTab('w12')"><span>📅</span>12-Week</div>
     <div class="htile ht-c" onclick="switchTab('cal')"><span>📆</span>Calendar</div>
-    <div class="htile ht-d" onclick="switchTab('vision')"><span>🎯</span>Vision</div>
+    <div class="htile ht-d" onclick="switchTab('strategy')"><span>📈</span>Strategy</div>
     <div class="htile ht-e" onclick="switchTab('daily')"><span>📓</span>Daily</div>
     <div class="htile ht-f" onclick="switchTab('inbox')"><span>📥</span>Inbox</div>
   </div>`;
@@ -2340,6 +2393,261 @@ function renderBoardSlide(){
     </div>`;
 }
 
+
+// ====== STRATEGY / GROWTH SYSTEM ======
+const STRAT_TARGETS={brands:{now:11,target:25,label:'Brands'},brandRev:{now:8,target:20,label:'Brand Revenue %'},premiumMix:{now:15,target:30,label:'Premium Mix %'},aCust:{now:38,target:38,label:'A-Customers'}};
+
+async function loadStrategy(){
+  const root=document.getElementById('view-strategy');
+  root.innerHTML='<div class="empty" style="padding:20px">Loading strategy...</div>';
+
+  // metrics (saved) + customers + strategy cycle
+  let metrics={};
+  try{const {data:m}=await sb.from('plan_strategy_metrics').select('*').eq('owner_id',ME.id).order('updated_at',{ascending:false}).limit(1);if(m&&m.length)metrics=m[0];}catch(e){}
+  const {data:custs}=await sb.from('plan_customers').select('*').eq('owner_id',ME.id).order('share_pct',{ascending:false});
+  const cust=custs||[];
+
+  // compute live metrics from customers if present
+  const brands=cust.filter(c=>c.ctype==='Brand');
+  const brandRev=brands.reduce((s,c)=>s+(parseFloat(c.share_pct)||0),0);
+  const today=todayStr();
+  const alerts=[];
+  cust.forEach(c=>{
+    if(c.last_order_date){
+      const gap=Math.floor((new Date(today)-new Date(c.last_order_date))/(24*3600*1000));
+      if(gap>=60)alerts.push({name:c.name,gap,type:c.ctype});
+    }
+  });
+  alerts.sort((a,b)=>b.gap-a.gap);
+
+  const bMix=metrics.premium_mix||15;
+  const bNow=cust.length?brands.length:11;
+  const brNow=cust.length?Math.round(brandRev*10)/10:8;
+
+  let html=`<div class="strat-hero">
+    <div class="sh-title">📈 Growth Strategy</div>
+    <div class="sh-sub">Tamper-Proof Specialist · Premium se growth</div>
+  </div>`;
+
+  // DASHBOARD
+  html+=`<div class="hsec">📊 Growth Dashboard</div>`;
+  html+=`<div class="strat-meters">
+    ${meterCard('Brands',bNow,25,'#7c3aed','brands')}
+    ${meterCard('Brand Rev %',brNow,20,'#059669','brandRev')}
+    ${meterCard('Premium Mix %',bMix,30,'#e11d48','premiumMix')}
+    ${meterCard('A-Customers',cust.filter(c=>c.abc==='A').length||38,38,'#ea580c','aCust')}
+  </div>`;
+  html+=`<button class="btn sm ghost" onclick="editMetrics()" style="margin-bottom:8px">✏️ Numbers update karo</button>`;
+
+  // ALERTS
+  if(alerts.length){
+    html+=`<div class="hsec">🔴 Alerts</div><div class="hfocus">`;
+    alerts.slice(0,6).forEach(a=>{
+      html+=`<div class="hf-item"><div class="hf-dot fu-red">${a.gap}d</div><div class="hf-t">${esc(a.name)}<div class="fu-sub">${a.type||''} · ${a.gap} din se order nahi ${a.gap>=90?'(LAPSED!)':''}</div></div></div>`;
+    });
+    html+=`</div>`;
+  }
+
+  // CUSTOMER TRACKER
+  html+=`<div class="hsec">👥 Customer Tracker ${cust.length?'('+cust.length+')':''}
+    <button class="btn sm" onclick="importCustomers()" style="float:right;font-size:12px">📥 Busy Import</button></div>`;
+  if(cust.length){
+    html+=`<div class="ctrack">`;
+    cust.slice(0,50).forEach(c=>{
+      const gap=c.last_order_date?Math.floor((new Date(today)-new Date(c.last_order_date))/(24*3600*1000)):null;
+      const flag=gap===null?'':(gap>=90?'🔴':gap>=45?'🟡':'🟢');
+      const tb=c.ctype==='Brand'?'<span class="ct-brand">Brand</span>':'<span class="ct-trader">Trader</span>';
+      html+=`<div class="ct-row" onclick="custDetail('${c.id}')">
+        <div class="ct-abc ct-${(c.abc||'C').toLowerCase()}">${c.abc||'C'}</div>
+        <div class="ct-info"><div class="ct-name">${esc(c.name)} ${flag}</div>
+          <div class="ct-meta">${tb} · ${c.share_pct||0}%${gap!==null?' · order '+gap+'d ago':''}</div></div>
+      </div>`;
+    });
+    html+=`</div>`;
+  }else{
+    html+=`<div class="hfocus"><div class="hc-empty">Abhi koi customer nahi. "📥 Busy Import" se A-group customers daalo (ek baar).</div></div>`;
+  }
+
+  // STRATEGY CYCLE (tactics)
+  html+=`<div class="hsec">🎯 Strategy Cycle — Is Hafte</div>`;
+  let scyc=null;
+  try{const {data:sc}=await sb.from('plan_strategy_cycles').select('*').eq('owner_id',ME.id).eq('status','active').limit(1);if(sc&&sc.length)scyc=sc[0];}catch(e){}
+  if(scyc){
+    const sw=weekOfCycle(scyc.start_date);
+    const {data:stacs}=await sb.from('plan_strategy_tactics').select('*').eq('cycle_id',scyc.id).order('focus_week');
+    const wt=(stacs||[]).filter(t=>t.focus_week===sw);
+    html+=`<div class="hfocus"><div style="font-size:12px;color:var(--muted);margin-bottom:6px">Week ${sw}/12 · ${esc(scyc.title)}</div>`;
+    if(wt.length){
+      wt.forEach(t=>{
+        const safe=esc(t.title).replace(/'/g,"\\'");
+        html+=`<div class="hf-item">
+          <button class="fu-check ${t.done?'done':''}" onclick="toggleStratTactic('${t.id}',${t.done?'true':'false'})">${t.done?'✓':'○'}</button>
+          <div class="hf-t">${esc(t.title)}${t.goal_area?`<div class="fu-sub">${esc(t.goal_area)}${t.assigned_name?' · 👤 '+esc(t.assigned_name):''}</div>`:''}</div>
+          <button class="fu-mini" onclick="openNotes('strat_tactic','${t.id}','${safe}')">📝</button>
+        </div>`;
+      });
+    }else{html+=`<div class="hc-empty">Is week ke liye koi tactic nahi</div>`;}
+    html+=`</div>`;
+    html+=`<button class="sum-btns-one btn sm ghost" onclick="switchStratWeek()" style="margin-top:8px">📅 Poora 12-week plan</button>`;
+  }else{
+    html+=`<div class="hfocus"><div class="hc-empty">Strategy cycle abhi setup nahi. <button class="btn sm" onclick="setupStrategyCycle()">🚀 Cycle 1 shuru karo</button></div></div>`;
+  }
+
+  root.innerHTML=html;
+}
+
+function meterCard(label,now,target,color,key){
+  const pct=Math.min(100,Math.round(now/target*100));
+  return `<div class="meter" onclick="editMetrics()">
+    <div class="meter-top"><span>${label}</span><b style="color:${color}">${now}${key.includes('Mix')||key.includes('Rev')?'%':''}</b></div>
+    <div class="meter-bar"><i style="width:${pct}%;background:${color}"></i></div>
+    <div class="meter-tgt">target ${target}${key.includes('Mix')||key.includes('Rev')?'%':''}</div>
+  </div>`;
+}
+
+async function editMetrics(){
+  const {data:m}=await sb.from('plan_strategy_metrics').select('*').eq('owner_id',ME.id).order('updated_at',{ascending:false}).limit(1);
+  const cur=(m&&m.length)?m[0]:{};
+  const pm=prompt('Premium Mix % abhi kitna hai? (jaise 15)',cur.premium_mix||15);
+  if(pm===null)return;
+  const am=prompt('Average Margin % abhi? (jaise 17)',cur.avg_margin||17);
+  if(am===null)return;
+  await sb.from('plan_strategy_metrics').insert({owner_id:ME.id,premium_mix:parseFloat(pm)||0,avg_margin:parseFloat(am)||0,updated_at:new Date().toISOString()});
+  toast('Numbers update ✓');loadStrategy();
+}
+
+async function importCustomers(){
+  const root=document.getElementById('modalRoot');
+  root.innerHTML=`<div class="modal-bg" onclick="closeModal()"></div>
+    <div class="modal">
+      <h3>📥 Busy se Customer Import</h3>
+      <p style="font-size:13px;color:var(--muted)">Busy se party-wise % export karo. Har line: <b>Naam , % , Type(B/T) , ABC</b><br>Ya sirf <b>Naam , %</b> (baaki auto). Ek line me ek customer.</p>
+      <textarea id="impText" style="width:100%;height:180px;font-size:12px;font-family:monospace" placeholder="Dr Oetker, 3.27, B, A
+Pappu Ji Mangolpuri, 11.38, T, A
+Tropilite, 0.03, B, C
+..."></textarea>
+      <div class="modal-actions">
+        <button class="btn gray" onclick="closeModal()">Band</button>
+        <button class="btn" onclick="doImportCustomers()">Import karo</button>
+      </div>
+    </div>`;
+}
+
+async function doImportCustomers(){
+  const txt=document.getElementById('impText').value.trim();
+  if(!txt){toast('Kuch paste karo');return}
+  const lines=txt.split('\n').map(l=>l.trim()).filter(Boolean);
+  const rows=[];
+  for(const ln of lines){
+    const p=ln.split(',').map(x=>x.trim());
+    if(!p[0])continue;
+    const name=p[0];
+    const share=parseFloat(p[1])||0;
+    let ctype='Trader';
+    if(p[2]){const t=p[2].toUpperCase();ctype=(t.startsWith('B'))?'Brand':'Trader';}
+    const abc=p[3]?p[3].toUpperCase():(share>=1.5?'A':share>=0.4?'B':'C');
+    rows.push({owner_id:ME.id,name,share_pct:share,ctype,abc});
+  }
+  if(!rows.length){toast('Koi valid line nahi');return}
+  // purane delete, naye daalo (fresh import)
+  await sb.from('plan_customers').delete().eq('owner_id',ME.id);
+  const {error}=await sb.from('plan_customers').insert(rows);
+  if(error){toast('Error: '+error.message);return}
+  closeModal();toast(rows.length+' customers import ho gaye ✓');loadStrategy();
+}
+
+async function custDetail(id){
+  const {data:c}=await sb.from('plan_customers').select('*').eq('id',id).single();
+  if(!c)return;
+  const root=document.getElementById('modalRoot');
+  root.innerHTML=`<div class="modal-bg" onclick="closeModal()"></div>
+    <div class="modal">
+      <h3>${esc(c.name)}</h3>
+      <div class="field"><label>Type</label>
+        <select id="cType"><option value="Trader" ${c.ctype==='Trader'?'selected':''}>Trader</option><option value="Brand" ${c.ctype==='Brand'?'selected':''}>Brand/End-user</option></select></div>
+      <div class="field"><label>Sales share %</label><input id="cShare" type="number" step="0.01" value="${c.share_pct||0}"></div>
+      <div class="field"><label>ABC</label>
+        <select id="cAbc"><option ${c.abc==='A'?'selected':''}>A</option><option ${c.abc==='B'?'selected':''}>B</option><option ${c.abc==='C'?'selected':''}>C</option></select></div>
+      <div class="field"><label>Last order date</label><input id="cLast" type="date" value="${c.last_order_date||''}"></div>
+      <div class="field"><label>Last contact date</label><input id="cContact" type="date" value="${c.last_contact_date||''}"></div>
+      <div class="field"><label>Notes</label><textarea id="cNotes">${esc(c.notes||'')}</textarea></div>
+      <div class="modal-actions">
+        <button class="btn gray" onclick="closeModal()">Band</button>
+        <button class="btn" onclick="saveCust('${id}')">Save</button>
+      </div>
+    </div>`;
+}
+
+async function saveCust(id){
+  await sb.from('plan_customers').update({
+    ctype:document.getElementById('cType').value,
+    share_pct:parseFloat(document.getElementById('cShare').value)||0,
+    abc:document.getElementById('cAbc').value,
+    last_order_date:document.getElementById('cLast').value||null,
+    last_contact_date:document.getElementById('cContact').value||null,
+    notes:document.getElementById('cNotes').value||null
+  }).eq('id',id);
+  closeModal();toast('Save ✓');loadStrategy();
+}
+
+async function setupStrategyCycle(){
+  if(!confirm('Strategy Cycle 1 shuru karein? (12 hafte, 6 goals ke tactics)'))return;
+  const start=todayStr();
+  const {data:cy,error}=await sb.from('plan_strategy_cycles').insert({owner_id:ME.id,title:'Strategy Cycle 1 — Premium Growth',start_date:start,status:'active'}).select().single();
+  if(error){toast('Error: '+error.message);return}
+  // pre-fill tactics (ABC actions → weekly)
+  const T=[
+    ['Customer ABC list finalize + baseline',1,'🏰 Moat','Nitin'],
+    ['Premium % + margin baseline nikaalo',1,'💰 Pricing','Nitin'],
+    ['Top 5 products value-mapping',2,'💰 Pricing','Nitin'],
+    ['Raw material source check (trader/direct)',2,'🔗 Integration','Nitin'],
+    ['Raw-material clause draft (CA)',3,'💰 Pricing','CA'],
+    ['Premium products naya rate decide',3,'💰 Pricing','Nitin'],
+    ['A-group weekly contact shuru',4,'🔄 Retention','Nitin'],
+    ['Direct supplier rate (2-3 se)',4,'🔗 Integration','Nitin'],
+    ['3 naye premium clients approach',5,'🏰 Moat','Sales'],
+    ['RO/RE 5 export clients + sample',5,'🏰 Moat','Nitin'],
+    ['Dr Oetker double + upsell',6,'🔄 Retention','Nitin'],
+    ['Tropilite winback call',6,'🔄 Retention','Nitin'],
+    ['Tamper-Proof Specialist branding',7,'🎯 Positioning','Nitin'],
+    ['Traders ko premium range dikhao',7,'🎯 Positioning','Sales'],
+    ['Raw material sourcing finalize',8,'🔗 Integration','Nitin'],
+    ['RO/RE international-standard marketing',8,'🎯 Positioning','Sales'],
+    ['A-customers owner-level relationship',9,'🔄 Retention','Nitin'],
+    ['Premium leads follow-up',9,'🏰 Moat','Sales'],
+    ['2-3 aur premium clients',10,'🏰 Moat','Sales'],
+    ['Premium mix check (target 30%)',10,'🏰 Moat','Nitin'],
+    ['Dashboard full update',11,'🛡️ Review','Nitin'],
+    ['Cycle review + Cycle 2 targets',12,'🛡️ Review','Nitin']
+  ];
+  await sb.from('plan_strategy_tactics').insert(T.map(t=>({owner_id:ME.id,cycle_id:cy.id,title:t[0],focus_week:t[1],goal_area:t[2],assigned_name:t[3]})));
+  toast('Strategy Cycle 1 ready! 🚀');loadStrategy();
+}
+
+async function toggleStratTactic(id,done){
+  await sb.from('plan_strategy_tactics').update({done:!done}).eq('id',id);
+  loadStrategy();
+}
+
+let STRAT_WEEK_VIEW=false;
+async function switchStratWeek(){
+  const {data:sc}=await sb.from('plan_strategy_cycles').select('*').eq('owner_id',ME.id).eq('status','active').limit(1);
+  if(!sc||!sc.length)return;
+  const scyc=sc[0];const sw=weekOfCycle(scyc.start_date);
+  const {data:stacs}=await sb.from('plan_strategy_tactics').select('*').eq('cycle_id',scyc.id).order('focus_week');
+  const root=document.getElementById('modalRoot');
+  let h=`<div class="modal-bg" onclick="closeModal()"></div><div class="modal" style="max-height:80vh;overflow-y:auto">
+    <h3>📅 ${esc(scyc.title)}</h3><p style="font-size:12px;color:var(--muted)">Week ${sw}/12</p>`;
+  for(let w=1;w<=12;w++){
+    const wt=(stacs||[]).filter(t=>t.focus_week===w);
+    if(!wt.length)continue;
+    h+=`<div style="margin-top:10px"><b style="color:var(--navy);font-size:13px">Week ${w}${w===sw?' (abhi)':''}</b>`;
+    wt.forEach(t=>{h+=`<div class="hf-item"><button class="fu-check ${t.done?'done':''}" onclick="toggleStratTactic('${t.id}',${t.done?'true':'false'})">${t.done?'✓':'○'}</button><div class="hf-t" style="font-size:13px">${esc(t.title)}<div class="fu-sub">${esc(t.goal_area||'')}${t.assigned_name?' · 👤 '+esc(t.assigned_name):''}</div></div></div>`});
+    h+=`</div>`;
+  }
+  h+=`<div class="modal-actions"><button class="btn" onclick="closeModal()">Band</button></div></div>`;
+  root.innerHTML=h;
+}
 
 // ====== FOLLOW-UP SCHEDULER (task lifecycle) ======
 async function carryForwardFollowups(){
