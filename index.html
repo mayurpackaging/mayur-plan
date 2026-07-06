@@ -196,6 +196,9 @@
   .wk-cell:not(.wk-done):hover{background:#eef1f5}
   .wk-cell.wk-off{opacity:.35;cursor:default;background:#fafbfc}
   .wk-cell.wk-off:hover{background:#fafbfc}
+  .strat-detail{background:#f6f4fd;border-left:3px solid #7c3aed;border-radius:8px;padding:11px 13px;margin:8px 0}
+  .sd-how{font-size:13px;line-height:1.55;color:#333}
+  .sd-target{font-size:12.5px;color:#5b21b6;margin-top:8px;padding-top:8px;border-top:1px solid #e5ddf7}
   /* tactic title row (above its week cells) */
   .tac-row{margin-bottom:9px;padding-bottom:9px;border-bottom:1px solid #f0f2f5}
   .tac-title{font-size:13px;display:flex;align-items:center;gap:5px;margin-bottom:5px;flex-wrap:wrap}
@@ -2514,12 +2517,19 @@ async function loadStrategy(){
       <div class="wgoal-head"><div class="wg-title">${esc(area)}</div></div>`;
     at.forEach(t=>{
       const safe=esc(t.title).replace(/'/g,"\\'");
+      const hasDetail=t.detail&&t.detail.trim();
       html+=`<div class="tac-row">
         <div class="tac-title">
           <span class="tac-title-txt">${esc(t.title)}${t.assigned_name?` <span class="who-chip sm">👤 ${esc(t.assigned_name)}</span>`:''}</span>
-          <span class="tac-btns"><button class="mini-edit" onclick="openNotes('strat_tactic','${t.id}','${safe}')" title="Notes">📝</button></span>
-        </div>
-        <div class="wk-cells">`;
+          <span class="tac-btns">${hasDetail?`<button class="mini-edit" onclick="toggleStratDetail('${t.id}')" title="Deep detail">${'💡'}</button>`:''}<button class="mini-edit" onclick="openNotes('strat_tactic','${t.id}','${safe}')" title="Notes">📝</button></span>
+        </div>`;
+      if(hasDetail){
+        html+=`<div id="sdet-${t.id}" class="strat-detail hide">
+          <div class="sd-how">${esc(t.detail)}</div>
+          ${t.target?`<div class="sd-target">🎯 <b>Target:</b> ${esc(t.target)}</div>`:''}
+        </div>`;
+      }
+      html+=`<div class="wk-cells">`;
       for(let w=1;w<=12;w++){
         const done=t.focus_week===w && t.done;
         const isFocus=t.focus_week===w;
@@ -2644,36 +2654,84 @@ async function setupStrategyCycle(){
   if(error){toast('Error: '+error.message);return}
   // pre-fill tactics (ABC actions → weekly)
   const T=[
-    ['Customer ABC list finalize + baseline',1,'🏰 Moat','Nitin'],
-    ['Premium % + margin baseline nikaalo',1,'💰 Pricing','Nitin'],
-    ['Top 5 products value-mapping',2,'💰 Pricing','Nitin'],
-    ['Raw material source check (trader/direct)',2,'🔗 Integration','Nitin'],
-    ['Raw-material clause draft (CA)',3,'💰 Pricing','CA'],
-    ['Premium products naya rate decide',3,'💰 Pricing','Nitin'],
-    ['A-group weekly contact shuru',4,'🔄 Retention','Nitin'],
-    ['Direct supplier rate (2-3 se)',4,'🔗 Integration','Nitin'],
-    ['3 naye premium clients approach',5,'🏰 Moat','Sales'],
-    ['RO/RE 5 export clients + sample',5,'🏰 Moat','Nitin'],
-    ['Dr Oetker double + upsell',6,'🔄 Retention','Nitin'],
-    ['Tropilite winback call',6,'🔄 Retention','Nitin'],
-    ['Tamper-Proof Specialist branding',7,'🎯 Positioning','Nitin'],
-    ['Traders ko premium range dikhao',7,'🎯 Positioning','Sales'],
-    ['Raw material sourcing finalize',8,'🔗 Integration','Nitin'],
-    ['RO/RE international-standard marketing',8,'🎯 Positioning','Sales'],
-    ['A-customers owner-level relationship',9,'🔄 Retention','Nitin'],
-    ['Premium leads follow-up',9,'🏰 Moat','Sales'],
-    ['2-3 aur premium clients',10,'🏰 Moat','Sales'],
-    ['Premium mix check (target 30%)',10,'🏰 Moat','Nitin'],
-    ['Dashboard full update',11,'🛡️ Review','Nitin'],
-    ['Cycle review + Cycle 2 targets',12,'🛡️ Review','Nitin']
+    ['Customer ABC list finalize + baseline',1,'🏰 Moat','Nitin',
+     'Busy se poore saal ka party-wise sales nikaalo. Top 20% customers (jo 80% business dete hain) = A-group, middle = B, chhote = C. Har customer ka Brand/Trader tag karo. Ye list app ke Customer Tracker me import karo. Isse pata chalega kispe max dhyan dena hai.',
+     '120 customers A/B/C me tagged, tracker me imported'],
+    ['Premium % + margin baseline nikaalo',1,'💰 Pricing','Nitin',
+     'Aaj ka premium mix (tamper, RO/RE, oval, rectangle) vs regular ka % nikaalo — value (₹) me, sirf quantity me nahi. Har premium product ka current margin bhi. Ye "starting point" hai — 12 hafte baad isse compare karke pata chalega kitna aage badhe.',
+     'Premium mix % + avg margin % — dashboard me set'],
+    ['Top 5 products value-mapping',2,'💰 Pricing','Nitin',
+     'Round Tamper 2000, RO series, Oval, Rectangle, ek aur — in 5 pe likho: "customer ko iska UNIQUE fayda kya?" (safety, premium look, kam rejection, export-standard). Fir har fayde ki keemat socho. Cost+15% chhodo — value-based rate nikaalo.',
+     '5 products ka value + naya suggested rate'],
+    ['Raw material source check (trader/direct)',2,'🔗 Integration','Nitin',
+     'Pata karo abhi PP granule kis se lete ho — trader/distributor ya seedha manufacturer? Beech me kitna commission ja raha? Direct jaane se 2-4% cost bach sakti hai (₹70L-1Cr/saal). Ye sabse aasaan margin gain hai.',
+     'Current sourcing clear + bachat ka andaaza'],
+    ['Raw-material clause draft (CA)',3,'💰 Pricing','CA',
+     'CA se ek clause banwao har PO/contract ke liye: "Rates PP granule prices se linked. ±3% se zyada change agle billing cycle me adjust hoga." Ye industry-normal hai, customer bura nahi maanta. Isse jab raw material mehenga ho to aap loss me nahi jaoge.',
+     'Legal clause ready, naye PO me daalna shuru'],
+    ['Premium products naya rate decide',3,'💰 Pricing','Nitin',
+     'Value-mapping (week 2) ke hisaab se premium products pe naya rate lagao. Premium pe 15% se 22-25% margin possible. Bolte waqt "fayda" becho, "cost" nahi. Anchor trick: pehle mehenga custom option dikhao, phir standard sasta lagega.',
+     'Premium products pe revised rate live'],
+    ['A-group weekly contact shuru',4,'🔄 Retention','Nitin',
+     'Top 15-20 customers (A-group) ko har hafte call/visit — bina order ke bhi. "Sir sab theek? koi dikkat? kuch naya chahiye?" 90% supplier ye nahi karte. Aap karoge to customer kabhi nahi jayega. Har contact app me note karo (last contact date).',
+     'A-group se weekly contact rhythm set'],
+    ['Direct supplier rate (2-3 se)',4,'🔗 Integration','Nitin',
+     'PP granule ke 2-3 direct manufacturers/importers (Reliance, IOCL, Haldia ya bade importer) se bade volume (expansion ke baad 480 ton) ka rate poocho. 2-3 supplier rakho — ek pe depend mat raho (supplier risk kam).',
+     '2-3 direct supplier ke rates aaye'],
+    ['3 naye premium clients approach',5,'🏰 Moat','Sales',
+     'Traders se nahi — seedha BRANDS/end-users pakdo: cloud kitchens, premium cafes, sweet shops, packaged-food companies. Inko tamper range dikhao. Ye premium lete hain (margin + positioning). Har week 3 naye approach karo.',
+     '3 naye premium leads generate'],
+    ['RO/RE 5 export clients + sample',5,'🏰 Moat','Nitin',
+     'RO/RE international-standard heavy boxes hain — inka customer export karne wale + MNC brands hain. 5 aise clients dhundho jinko international-quality chahiye. Unko sample bhejo. RO/RE abhi sirf 1.5% bikta — ye hidden gem hai.',
+     '5 export/MNC clients ko RO/RE sample'],
+    ['Dr Oetker double + upsell',6,'🔄 Retention','Nitin',
+     'Oetker aapka #1 brand hai (3.27%) par abhi sirf ek-do product le raha. Meeting karo, aur premium SKU offer karo. Relationship owner-level deep karo. Target: unka business 2x karo. Ye aapki premium positioning ka proof bhi hai.',
+     'Oetker se naya order/product line'],
+    ['Tropilite winback call',6,'🔄 Retention','Nitin',
+     'Tropilite premium brand hai par abhi sirf 0.03% (rank #115) — matlab lapsed/rukа hua. Turant call karo — "kya hua, koi dikkat thi?" Premium product offer se wapas laao. Gaya customer wapas laana naye se aasaan.',
+     'Tropilite se dobara order shuru'],
+    ['Tamper-Proof Specialist branding',7,'🎯 Positioning','Nitin',
+     'Market me apni pehchan banao: "Mayur = Tamper-Proof Specialist." LinkedIn post, brochure, meetings — sab me ye message. Aapke 17 tamper SKU (Round/Oval/Rectangle) ise proof karte hain. Regular sab bechte hain, tamper aapki khaas cheez.',
+     'Positioning message live (LinkedIn+brochure)'],
+    ['Traders ko premium range dikhao',7,'🎯 Positioning','Sales',
+     'Aapke 68 traders regular bech rahe. Unhe bolo "tamper/RO-RE range bhi rakho, tumhare customers maangenge." Traders ke through bhi premium push hoga — double reach. Unko premium ka margin dikhao taaki wo interested hon.',
+     'Top 10 traders ko premium range pitch'],
+    ['Raw material sourcing finalize',8,'🔗 Integration','Nitin',
+     'Week 4 ke supplier rates me se best 1-2 chuno, rate lock karo, order shuru. Direct sourcing se jo 2-4% bachega wo seedha margin me. Ye ek baar setup, phir hamesha fayda.',
+     'Direct sourcing live — cost bachat shuru'],
+    ['RO/RE international-standard marketing',8,'🎯 Positioning','Sales',
+     'RO/RE ko "Export-quality, International Standard, Heavy-duty" tag se promote karo. Ye premium clients ko attract karta hai. Website/catalog me alag section. Rate confident rakho — kam bikta hai to rate mat girao, sahi customer poora dega.',
+     'RO/RE ka premium marketing material'],
+    ['A-customers owner-level relationship',9,'🔄 Retention','Nitin',
+     'Top 5 customers ke sirf purchase manager se nahi — owner/decision-maker se milo. Jitne zyada log aapko jaante hain, utna mushkil aapko nikaalna. Ye "switching" ko mushkil banata hai (achhe tareeke se).',
+     'Top 5 ke owner-level se meeting'],
+    ['Premium leads follow-up',9,'🏰 Moat','Sales',
+     'Week 5 wale 3 premium leads + 5 RO/RE samples ka result dekho. Jo interested hain unko close karo. Jo nahi, unse feedback lo (kyun nahi). Follow-up scheduler me daalo taaki koi lead na chhoote.',
+     '3 leads me se 1-2 convert'],
+    ['2-3 aur premium clients',10,'🏰 Moat','Sales',
+     'Momentum banaye rakho — 2-3 aur naye premium/brand clients. Ab tak jo seekha (kaunsa pitch chala) use karo. Har naya brand = premium customer = margin + positioning strong.',
+     '2-3 aur premium clients added'],
+    ['Premium mix check (target 30%)',10,'🏰 Moat','Nitin',
+     'Ab tak premium mix kitna badha? Baseline 15% tha — target is cycle 30%. Dashboard me update karo. Agar 30% hit ho raha to zabardast. Nahi to dekho kaha atka.',
+     'Premium mix 30% (baseline 15% se)'],
+    ['Dashboard full update',11,'🛡️ Review','Nitin',
+     'Saare 4 numbers update karo: premium mix, avg margin, brands count, A-customer status. Busy se fresh data import karo. Ye dekhega 12 hafte me business kaha se kaha pahuncha.',
+     'Dashboard fully updated with fresh data'],
+    ['Cycle review + Cycle 2 targets',12,'🛡️ Review','Nitin',
+     'Poora cycle review: kitne target hit, kya kaam aaya, kya nahi. Learnings note karo. Fir Cycle 2 ke naye targets set karo (jaise premium 30→45%, margin 22→25%, brands 15→20). Achievement celebrate karo!',
+     'Cycle 1 closed, Cycle 2 planned']
   ];
-  await sb.from('plan_strategy_tactics').insert(T.map(t=>({owner_id:ME.id,cycle_id:cy.id,title:t[0],focus_week:t[1],goal_area:t[2],assigned_name:t[3]})));
+  await sb.from('plan_strategy_tactics').insert(T.map(t=>({owner_id:ME.id,cycle_id:cy.id,title:t[0],focus_week:t[1],goal_area:t[2],assigned_name:t[3],detail:t[4],target:t[5]})));
   toast('Strategy Cycle 1 ready! 🚀');loadStrategy();
 }
 
 async function toggleStratTactic(id,done){
   await sb.from('plan_strategy_tactics').update({done:!done}).eq('id',id);
   loadStrategy();
+}
+function toggleStratDetail(id){
+  const el=document.getElementById('sdet-'+id);
+  if(el)el.classList.toggle('hide');
 }
 
 // ====== FOLLOW-UP SCHEDULER (task lifecycle) ======
