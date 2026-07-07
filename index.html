@@ -267,6 +267,25 @@
   .strat-hero{background:linear-gradient(135deg,#7c3aed,#a855f7);border-radius:20px;padding:20px;color:#fff;margin-bottom:8px;box-shadow:0 8px 24px rgba(124,58,237,.3)}
   .sh-title{font-size:22px;font-weight:800}
   .sh-sub{font-size:13px;opacity:.9;margin-top:3px}
+  /* achievement system */
+  .ach-prog{background:#fff;border-radius:16px;padding:16px;margin-bottom:11px;box-shadow:0 3px 12px rgba(0,0,0,.06)}
+  .ach-prog-top{display:flex;justify-content:space-between;align-items:center}
+  .ach-lbl{font-size:12px;color:var(--muted);font-weight:600}
+  .ach-big{font-size:38px;font-weight:800;line-height:1.1}
+  .ach-sub{font-size:11.5px;color:var(--muted)}
+  .ach-ring{width:72px;height:72px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .ach-ring-in{width:54px;height:54px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;color:var(--navy)}
+  .ach-focus{background:linear-gradient(135deg,#1F4E79,#2d6ba3);border-radius:16px;padding:15px 17px;margin-bottom:11px;color:#fff}
+  .ach-focus-h{font-size:14px;font-weight:800;margin-bottom:9px}
+  .ach-focus-item{font-size:13.5px;padding:5px 0;opacity:.95}
+  .ach-focus-done{font-size:14px;font-weight:600;color:#7EE0A6}
+  .ach-coach{border-radius:14px;padding:13px 15px;margin-bottom:11px}
+  .ach-coach-good{background:#e8f6ee;border-left:4px solid #10b981}
+  .ach-coach-ok{background:#fff7e6;border-left:4px solid #f5a623}
+  .ach-coach-warn{background:#fde8e8;border-left:4px solid #e11d48}
+  .ach-coach-h{font-size:13px;font-weight:800;color:var(--navy);margin-bottom:4px}
+  .ach-coach-msg{font-size:13px;line-height:1.5;color:#333}
+  .ach-slip{background:#fff4d6;border:1px solid #f5c262;border-radius:12px;padding:11px 14px;margin-bottom:11px;font-size:12.5px;color:#7a5a00;line-height:1.5}
   .strat-meters{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:10px}
   .meter{background:#fff;border-radius:14px;padding:13px;box-shadow:0 2px 10px rgba(0,0,0,.05);cursor:pointer}
   .meter-top{display:flex;justify-content:space-between;align-items:baseline;font-size:12px;color:var(--muted)}
@@ -2433,6 +2452,75 @@ async function loadStrategy(){
     <div class="sh-title">📈 Growth Strategy</div>
     <div class="sh-sub">Tamper-Proof Specialist · Premium se growth</div>
   </div>`;
+
+  // ===== ACHIEVEMENT SYSTEM (progress + focus + coach + alert) =====
+  let scycA=null;
+  try{const {data:sc}=await sb.from('plan_strategy_cycles').select('*').eq('owner_id',ME.id).eq('status','active').limit(1);if(sc&&sc.length)scycA=sc[0];}catch(e){}
+  if(scycA){
+    const swA=weekOfCycle(scycA.start_date);
+    const {data:allT}=await sb.from('plan_strategy_tactics').select('*').eq('cycle_id',scycA.id);
+    const tA=allT||[];
+    const dueA=tA.filter(t=>t.focus_week<=swA);
+    const doneA=dueA.filter(t=>t.done);
+    const doneAll=tA.filter(t=>t.done);
+    const progPct=dueA.length?Math.round(doneA.length/dueA.length*100):0;
+    const totalPct=tA.length?Math.round(doneAll.length/tA.length*100):0;
+    // expected path: week/12
+    const expectedPct=Math.round(swA/12*100);
+
+    // Progress card
+    const pc=progPct>=85?'#10b981':progPct>=60?'#f5a623':'#e11d48';
+    html+=`<div class="ach-prog">
+      <div class="ach-prog-top">
+        <div><div class="ach-lbl">Cycle Progress · Week ${swA}/12</div>
+        <div class="ach-big" style="color:${pc}">${progPct}%</div>
+        <div class="ach-sub">${doneA.length}/${dueA.length} due tasks done · ${doneAll.length}/${tA.length} total</div></div>
+        <div class="ach-ring" style="background:conic-gradient(${pc} ${progPct}%, #eef1f5 0)">
+          <div class="ach-ring-in">${totalPct}%</div>
+        </div>
+      </div>
+    </div>`;
+
+    // Weekly Focus — is week ke pending tasks
+    const wtF=tA.filter(t=>t.focus_week===swA);
+    const wtPend=wtF.filter(t=>!t.done);
+    html+=`<div class="ach-focus">
+      <div class="ach-focus-h">🎯 Is Hafte ka Focus (Week ${swA})</div>`;
+    if(wtPend.length){
+      wtPend.forEach(t=>{
+        html+=`<div class="ach-focus-item">▸ ${esc(t.title)}${t.assigned_name?` <span class="who-chip sm">👤 ${esc(t.assigned_name)}</span>`:''}</div>`;
+      });
+    }else if(wtF.length){
+      html+=`<div class="ach-focus-done">✓ Is hafte ke saare kaam ho gaye! Zabardast 🎉</div>`;
+    }else{
+      html+=`<div class="ach-focus-item" style="color:var(--muted)">Is week koi tactic nahi</div>`;
+    }
+    html+=`</div>`;
+
+    // AI Coach + Slippage (rule-based smart message)
+    let coachMsg='',coachType='ok';
+    if(progPct>=85){coachMsg='Zabardast execution! '+progPct+'% on track. Isi rhythm me raho — target aasaani se hit hoga.';coachType='good';}
+    else if(progPct>=60){coachMsg='Theek chal raha ('+progPct+'%), par thoda push chahiye. '+(dueA.length-doneA.length)+' due kaam pending — is hafte clear karo.';coachType='ok';}
+    else{coachMsg='Dhyan do! Sirf '+progPct+'% due tasks hue. '+(dueA.length-doneA.length)+' kaam pending hain. Aaj hi 1-2 pakdo warna cycle peeche jayega.';coachType='warn';}
+
+    // area-wise: kaunsa goal peeche
+    const areas={};
+    tA.forEach(t=>{const a=t.goal_area||'Other';if(!areas[a])areas[a]={t:0,d:0};if(t.focus_week<=swA){areas[a].t++;if(t.done)areas[a].d++;}});
+    let weakArea='';let weakPct=101;
+    Object.entries(areas).forEach(([a,v])=>{if(v.t>0){const pct=v.d/v.t*100;if(pct<weakPct){weakPct=pct;weakArea=a;}}});
+    let coachExtra='';
+    if(weakArea&&weakPct<60)coachExtra=` Sabse peeche: ${weakArea} — ispe focus karo.`;
+
+    html+=`<div class="ach-coach ach-coach-${coachType}">
+      <div class="ach-coach-h">🧠 Strategy Coach</div>
+      <div class="ach-coach-msg">${coachMsg}${coachExtra}</div>
+    </div>`;
+
+    // Slippage alert — agar behind expected path
+    if(progPct<expectedPct-15){
+      html+=`<div class="ach-slip">⚠️ <b>Slippage Alert:</b> Week ${swA} pe aapko ~${expectedPct}% hona chahiye tha, par ${progPct}% pe ho. ${expectedPct-progPct}% peeche — is week extra push karo.</div>`;
+    }
+  }
 
   // DASHBOARD
   html+=`<div class="hsec">📊 Growth Dashboard</div>`;
