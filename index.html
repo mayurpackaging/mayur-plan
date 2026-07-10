@@ -1512,17 +1512,32 @@ async function loadW12(){
       // each tactic = title row + week cells (with numbers) below
       for(const t of gTactics){
         const fw=t.focus_week?`<span class="fw-badge ${t.focus_week===curWeek?'fw-now':''}">W${t.focus_week}</span>`:'';
+        const prog=t.progress||0;
         html+=`<div class="tac-row">
           <div class="tac-title">
             <span class="tac-title-txt">${esc(t.title)} ${fw}${t.assigned_name?`<span class="who-chip sm">👤 ${esc(t.assigned_name)}</span>`:''}${t.scheduled_date?`<span class="sched-chip">📅 ${new Date(t.scheduled_date).toLocaleDateString('en-IN',{day:'numeric',month:'short'})}${t.time_slot?' · '+t.time_slot:''}</span>`:''}</span>
             <span class="tac-actions">
+              <button class="mini-edit" onclick="openW12Progress('${t.id}')" title="Progress & Results">📊</button>
               <button class="mini-edit" onclick="scheduleTactic('${t.id}','${esc(t.title).replace(/'/g,"\\'")}','${t.scheduled_date||''}','${t.time_slot||''}')" title="Schedule (date+time)">📅</button>
               <button class="mini-edit" onclick="openNotes('tactic','${t.id}','${esc(t.title).replace(/'/g,"\\'")}')" title="Notes">📝</button>
               <button class="mini-edit" onclick="editTactic('${t.id}','${esc(t.title).replace(/'/g,"\\'")}',${t.focus_week||0})" title="Edit">✏️</button>
               <button class="mini-edit" onclick="delTactic('${t.id}')" title="Delete">🗑</button>
             </span>
-          </div>
-          <div class="wk-cells">`;
+          </div>`;
+        if(prog>0||t.challenge||t.managing){
+          const pc=prog>=100?'#10b981':prog>=50?'#f5a623':'#7c3aed';
+          html+=`<div class="tac-prog" onclick="openW12Progress('${t.id}')">
+            <div class="tac-prog-bar"><i style="width:${prog}%;background:${pc}"></i></div>
+            <div class="tac-prog-lbl" style="color:${pc}">${prog}%</div>
+          </div>`;
+          if(t.challenge||t.solution){
+            html+=`<div class="tac-cs">`;
+            if(t.challenge)html+=`<div class="tac-cs-row"><span class="tac-cs-tag tcs-ch">⚠️ Challenge</span> ${esc(t.challenge)}</div>`;
+            if(t.solution)html+=`<div class="tac-cs-row"><span class="tac-cs-tag tcs-sol">✅ Solution</span> ${esc(t.solution)}</div>`;
+            html+=`</div>`;
+          }
+        }
+        html+=`<div class="wk-cells">`;
         for(let w=1;w<=12;w++){
           const cell=weekly.find(x=>x.tactic_id===t.id&&x.week_no===w);
           const done=cell&&cell.done;
@@ -2852,8 +2867,9 @@ function toggleStratDetail(id){
   if(el)el.classList.toggle('hide');
 }
 
-async function openStratProgress(id){
-  const {data:t}=await sb.from('plan_strategy_tactics').select('*').eq('id',id).single();
+// generic progress modal — works for both strategy & 12-week tactics
+async function openProgressModal(id,table,reload){
+  const {data:t}=await sb.from(table).select('*').eq('id',id).single();
   if(!t)return;
   const prog=t.progress||0;
   const root=document.getElementById('modalRoot');
@@ -2880,26 +2896,32 @@ async function openStratProgress(id){
         <textarea id="progMng" placeholder="Jaise: Sales team ko de diya, weekly follow-up...">${esc(t.managing||'')}</textarea></div>
       <div class="modal-actions">
         <button class="btn gray" onclick="closeModal()">Band</button>
-        <button class="btn" onclick="saveStratProgress('${id}')">Save</button>
+        <button class="btn" onclick="saveProgressModal('${id}','${table}','${reload}')">Save</button>
       </div>
     </div>
   </div>`;
 }
+function openStratProgress(id){return openProgressModal(id,'plan_strategy_tactics','loadStrategy');}
+function openW12Progress(id){return openProgressModal(id,'plan_tactics','loadW12');}
 function setProg(v){
   document.getElementById('progSlider').value=v;
   document.getElementById('progVal').textContent=v+'%';
 }
-async function saveStratProgress(id){
+async function saveProgressModal(id,table,reload){
   const prog=parseInt(document.getElementById('progSlider').value)||0;
-  await sb.from('plan_strategy_tactics').update({
+  const upd={
     progress:prog,
     challenge:document.getElementById('progChal').value||null,
     solution:document.getElementById('progSol').value||null,
-    managing:document.getElementById('progMng').value||null,
-    done:prog>=100
-  }).eq('id',id);
-  closeModal();toast('Progress saved ✓');loadStrategy();
+    managing:document.getElementById('progMng').value||null
+  };
+  if(table==='plan_strategy_tactics')upd.done=prog>=100;
+  await sb.from(table).update(upd).eq('id',id);
+  closeModal();toast('Progress saved ✓');
+  if(reload==='loadStrategy'&&typeof loadStrategy==='function')loadStrategy();
+  else if(reload==='loadW12'&&typeof loadW12==='function')loadW12();
 }
+
 
 // ====== FOLLOW-UP SCHEDULER (task lifecycle) ======
 async function carryForwardFollowups(){
