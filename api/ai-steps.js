@@ -5,7 +5,7 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'POST only' });
   }
-  const { idea, mode } = req.body || {};
+  const { idea, mode, taskTitle } = req.body || {};
   if (!idea) return res.status(400).json({ error: 'idea missing' });
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
@@ -58,6 +58,24 @@ Founder ka note: "${idea}"
 
 Sirf is JSON me jawab do (no markdown):
 {"subject":"<short clear subject line>","body":"<email body - greeting, main point(s), polite closing. Sign off as 'Nitin Nagpal'>"}`;
+  } else if (mode === 'solution') {
+    expectJson = 'object';
+    prompt = `Tum ek experienced business consultant ho, jo ek Indian food-packaging manufacturer (thin-wall injection moulding, premium tamper containers) ko salah dete ho.
+
+Founder ne ek kaam kiya aur usme ek CHALLENGE aayi. Tumhe uska practical SOLUTION suggest karna hai.
+
+Kaam: "${taskTitle || 'Business task'}"
+Challenge: "${idea}"
+
+Rules:
+- Solution PRACTICAL ho, theory nahi. Kya karna hai, seedha bolo.
+- Indian business context me socho (customers, traders, price sensitivity)
+- 2-3 sentence, Hinglish me (jaise ek senior consultant bolta hai)
+- Agar challenge me info kam hai to sabse common/likely solution do
+- Motivational bakwas nahi — actionable steps
+
+Sirf is JSON me jawab do (no markdown):
+{"solution":"<practical solution, 2-3 sentence Hinglish>"}`;
   } else if (mode === 'whatsapp') {
     expectJson = 'object';
     prompt = `Tum ek business writer ho. Founder ka ek note/update hai. Isse ek professional WhatsApp message banao (Hinglish me — Hindi-English mix, business-like par friendly). Matlab wahi rakho — naya fact mat jodo. Message short ho (2-5 lines), greeting se shuru, point clear, polite end.
