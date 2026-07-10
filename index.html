@@ -212,6 +212,7 @@
   .prog-quick{display:flex;gap:6px;margin-top:8px}
   .prog-quick button{flex:1;padding:6px;border:1px solid #d9d0f5;background:#f6f4fd;color:#7c3aed;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer}
   .prog-quick button:active{background:#7c3aed;color:#fff}
+  .ai-sol-btn{margin-top:6px;width:100%;font-size:12px}
   /* tactic title row (above its week cells) */
   .tac-row{margin-bottom:9px;padding-bottom:9px;border-bottom:1px solid #f0f2f5}
   .tac-title{font-size:13px;display:flex;align-items:center;gap:5px;margin-bottom:5px;flex-wrap:wrap}
@@ -1400,10 +1401,19 @@ async function loadW12(){
       return `<div class="iln"><span class="iln-dot">●</span><div><div class="iln-txt">${esc(n.note)}</div>${att}<div class="iln-meta">${dt}${n.met_with?' · 👤 '+esc(n.met_with):''}${exp}</div></div></div>`;
     }).join('')+`</div>`;
   };
-  // execution score for current week
+  // execution score for current week — progress-aware (tick=100%, warna progress%)
+  const wkTactics=tactics.filter(t=>t.focus_week===curWeek);
   const wkDone=weekly.filter(w=>w.week_no===curWeek&&w.done).length;
+  let execScore=0;
+  if(wkTactics.length){
+    wkTactics.forEach(t=>{
+      const ticked=weekly.find(x=>x.tactic_id===t.id&&x.week_no===curWeek&&x.done);
+      execScore+=ticked?100:(t.progress||0);
+    });
+    execScore=Math.round(execScore/wkTactics.length);
+  }
   const totalTactics=tactics.length;
-  const execPct=totalTactics?Math.round(wkDone/totalTactics*100):0;
+  const execPct=execScore;
   const rule85=execPct>=85;
 
   // ===== MISSED / PENDING logic =====
@@ -1416,16 +1426,19 @@ async function loadW12(){
       if(!done)missed.push(t);
     }
   }
-  // Discipline score: jitne focus-week aa chuke (current se peeche+current), unme se kitne hue
-  let dueTotal=0,dueDone=0;
+  // Discipline score: jitne focus-week aa chuke, unme progress % ka average
+  // (tick = 100%, warna tactic ka progress % — taaki aadha kaam bhi count ho)
+  let dueTotal=0,dueScore=0,dueDone=0;
   for(const t of tactics){
     const fw=t.focus_week||0;
     if(fw>0 && fw<=curWeek){
       dueTotal++;
-      if(weekly.find(x=>x.tactic_id===t.id&&x.week_no===fw&&x.done))dueDone++;
+      const ticked=weekly.find(x=>x.tactic_id===t.id&&x.week_no===fw&&x.done);
+      if(ticked){dueScore+=100;dueDone++;}
+      else dueScore+=(t.progress||0);
     }
   }
-  const disciplinePct=dueTotal?Math.round(dueDone/dueTotal*100):100;
+  const disciplinePct=dueTotal?Math.round(dueScore/dueTotal):100;
 
   let html=`<div class="cycle-sel">
     <select onchange="W12_SEL=this.value;loadW12()">
@@ -2889,7 +2902,8 @@ async function openProgressModal(id,table,reload){
         </div>
       </div>
       <div class="field"><label>⚠️ Challenge — kya dikkat aayi?</label>
-        <textarea id="progChal" placeholder="Jaise: customer ne rate zyada bola...">${esc(t.challenge||'')}</textarea></div>
+        <textarea id="progChal" placeholder="Jaise: customer ne rate zyada bola...">${esc(t.challenge||'')}</textarea>
+        <button class="btn sm ghost ai-sol-btn" onclick="aiSuggestSolution('${esc(t.title).replace(/'/g,"\\'")}')">🤖 AI se solution poocho</button></div>
       <div class="field"><label>✅ Solution — kaise overcome kiya?</label>
         <textarea id="progSol" placeholder="Jaise: value samjhaayi, sample bheja...">${esc(t.solution||'')}</textarea></div>
       <div class="field"><label>🔧 How I'm managing — main isko kaise kar raha hu</label>
@@ -2901,6 +2915,24 @@ async function openProgressModal(id,table,reload){
     </div>
   </div>`;
 }
+async function aiSuggestSolution(taskTitle){
+  const chal=document.getElementById('progChal').value.trim();
+  if(!chal){toast('Pehle challenge likho');return}
+  const btn=document.querySelector('.ai-sol-btn');
+  const old=btn.textContent;btn.textContent='🤖 Soch raha hu...';btn.disabled=true;
+  try{
+    const r=await fetch('/api/ai-steps',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({idea:chal,mode:'solution',taskTitle})});
+    const d=await r.json();
+    if(d.solution){
+      const sol=document.getElementById('progSol');
+      sol.value=(sol.value?sol.value+'\n\n':'')+d.solution;
+      toast('AI solution mil gaya ✓');
+    }else{toast('AI se jawab nahi aaya');}
+  }catch(e){toast('Error: '+e.message);}
+  btn.textContent=old;btn.disabled=false;
+}
+
 function openStratProgress(id){return openProgressModal(id,'plan_strategy_tactics','loadStrategy');}
 function openW12Progress(id){return openProgressModal(id,'plan_tactics','loadW12');}
 function setProg(v){
