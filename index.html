@@ -199,6 +199,19 @@
   .strat-detail{background:#f6f4fd;border-left:3px solid #7c3aed;border-radius:8px;padding:11px 13px;margin:8px 0}
   .sd-how{font-size:13px;line-height:1.55;color:#333}
   .sd-target{font-size:12.5px;color:#5b21b6;margin-top:8px;padding-top:8px;border-top:1px solid #e5ddf7}
+  /* tactic progress */
+  .tac-prog{display:flex;align-items:center;gap:8px;margin:8px 0 4px;cursor:pointer}
+  .tac-prog-bar{flex:1;height:8px;background:#eef1f5;border-radius:4px;overflow:hidden}
+  .tac-prog-bar i{display:block;height:100%;border-radius:4px;transition:width .3s}
+  .tac-prog-lbl{font-size:12px;font-weight:800;min-width:38px;text-align:right}
+  .tac-cs{margin:4px 0 6px;display:flex;flex-direction:column;gap:4px}
+  .tac-cs-row{font-size:12px;color:#444;line-height:1.4}
+  .tac-cs-tag{font-size:10px;font-weight:700;padding:1px 7px;border-radius:8px;margin-right:5px}
+  .tcs-ch{background:#fde8e8;color:#b42318}
+  .tcs-sol{background:#e8f6ee;color:#157347}
+  .prog-quick{display:flex;gap:6px;margin-top:8px}
+  .prog-quick button{flex:1;padding:6px;border:1px solid #d9d0f5;background:#f6f4fd;color:#7c3aed;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer}
+  .prog-quick button:active{background:#7c3aed;color:#fff}
   /* tactic title row (above its week cells) */
   .tac-row{margin-bottom:9px;padding-bottom:9px;border-bottom:1px solid #f0f2f5}
   .tac-title{font-size:13px;display:flex;align-items:center;gap:5px;margin-bottom:5px;flex-wrap:wrap}
@@ -2463,8 +2476,10 @@ async function loadStrategy(){
     const dueA=tA.filter(t=>t.focus_week<=swA);
     const doneA=dueA.filter(t=>t.done);
     const doneAll=tA.filter(t=>t.done);
-    const progPct=dueA.length?Math.round(doneA.length/dueA.length*100):0;
-    const totalPct=tA.length?Math.round(doneAll.length/tA.length*100):0;
+    // progress % — average of tactic progress (not just done/not-done)
+    const progVal=t=>t.done?100:(t.progress||0);
+    const progPct=dueA.length?Math.round(dueA.reduce((s,t)=>s+progVal(t),0)/dueA.length):0;
+    const totalPct=tA.length?Math.round(tA.reduce((s,t)=>s+progVal(t),0)/tA.length):0;
     // expected path: week/12
     const expectedPct=Math.round(swA/12*100);
 
@@ -2474,7 +2489,7 @@ async function loadStrategy(){
       <div class="ach-prog-top">
         <div><div class="ach-lbl">Cycle Progress · Week ${swA}/12</div>
         <div class="ach-big" style="color:${pc}">${progPct}%</div>
-        <div class="ach-sub">${doneA.length}/${dueA.length} due tasks done · ${doneAll.length}/${tA.length} total</div></div>
+        <div class="ach-sub">${doneA.length}/${dueA.length} due complete · ${progPct}% avg progress</div></div>
         <div class="ach-ring" style="background:conic-gradient(${pc} ${progPct}%, #eef1f5 0)">
           <div class="ach-ring-in">${totalPct}%</div>
         </div>
@@ -2606,16 +2621,31 @@ async function loadStrategy(){
     at.forEach(t=>{
       const safe=esc(t.title).replace(/'/g,"\\'");
       const hasDetail=t.detail&&t.detail.trim();
+      const prog=t.progress||0;
       html+=`<div class="tac-row">
         <div class="tac-title">
           <span class="tac-title-txt">${esc(t.title)}${t.assigned_name?` <span class="who-chip sm">👤 ${esc(t.assigned_name)}</span>`:''}</span>
-          <span class="tac-btns">${hasDetail?`<button class="mini-edit" onclick="toggleStratDetail('${t.id}')" title="Deep detail">${'💡'}</button>`:''}<button class="mini-edit" onclick="openNotes('strat_tactic','${t.id}','${safe}')" title="Notes">📝</button></span>
+          <span class="tac-btns">${hasDetail?`<button class="mini-edit" onclick="toggleStratDetail('${t.id}')" title="Deep detail">${'💡'}</button>`:''}<button class="mini-edit" onclick="openStratProgress('${t.id}')" title="Progress & Results">📊</button><button class="mini-edit" onclick="openNotes('strat_tactic','${t.id}','${safe}')" title="Notes">📝</button></span>
         </div>`;
       if(hasDetail){
         html+=`<div id="sdet-${t.id}" class="strat-detail hide">
           <div class="sd-how">${esc(t.detail)}</div>
           ${t.target?`<div class="sd-target">🎯 <b>Target:</b> ${esc(t.target)}</div>`:''}
         </div>`;
+      }
+      // progress bar (always visible if >0)
+      if(prog>0||t.challenge||t.managing){
+        const pc=prog>=100?'#10b981':prog>=50?'#f5a623':'#7c3aed';
+        html+=`<div class="tac-prog" onclick="openStratProgress('${t.id}')">
+          <div class="tac-prog-bar"><i style="width:${prog}%;background:${pc}"></i></div>
+          <div class="tac-prog-lbl" style="color:${pc}">${prog}%</div>
+        </div>`;
+        if(t.challenge||t.solution){
+          html+=`<div class="tac-cs">`;
+          if(t.challenge)html+=`<div class="tac-cs-row"><span class="tac-cs-tag tcs-ch">⚠️ Challenge</span> ${esc(t.challenge)}</div>`;
+          if(t.solution)html+=`<div class="tac-cs-row"><span class="tac-cs-tag tcs-sol">✅ Solution</span> ${esc(t.solution)}</div>`;
+          html+=`</div>`;
+        }
       }
       html+=`<div class="wk-cells">`;
       for(let w=1;w<=12;w++){
@@ -2820,6 +2850,55 @@ async function toggleStratTactic(id,done){
 function toggleStratDetail(id){
   const el=document.getElementById('sdet-'+id);
   if(el)el.classList.toggle('hide');
+}
+
+async function openStratProgress(id){
+  const {data:t}=await sb.from('plan_strategy_tactics').select('*').eq('id',id).single();
+  if(!t)return;
+  const prog=t.progress||0;
+  const root=document.getElementById('modalRoot');
+  root.innerHTML=`<div class="modal-bg" onclick="if(event.target===this)closeModal()">
+    <div class="modal" style="max-height:88vh;overflow-y:auto">
+      <h3 style="font-size:16px">📊 ${esc(t.title)}</h3>
+      <div class="field">
+        <label>Progress: <b id="progVal" style="color:#7c3aed">${prog}%</b></label>
+        <input id="progSlider" type="range" min="0" max="100" step="5" value="${prog}"
+          oninput="document.getElementById('progVal').textContent=this.value+'%'" style="width:100%">
+        <div class="prog-quick">
+          <button type="button" onclick="setProg(0)">0%</button>
+          <button type="button" onclick="setProg(25)">25%</button>
+          <button type="button" onclick="setProg(50)">50%</button>
+          <button type="button" onclick="setProg(75)">75%</button>
+          <button type="button" onclick="setProg(100)">100%</button>
+        </div>
+      </div>
+      <div class="field"><label>⚠️ Challenge — kya dikkat aayi?</label>
+        <textarea id="progChal" placeholder="Jaise: customer ne rate zyada bola...">${esc(t.challenge||'')}</textarea></div>
+      <div class="field"><label>✅ Solution — kaise overcome kiya?</label>
+        <textarea id="progSol" placeholder="Jaise: value samjhaayi, sample bheja...">${esc(t.solution||'')}</textarea></div>
+      <div class="field"><label>🔧 How I'm managing — main isko kaise kar raha hu</label>
+        <textarea id="progMng" placeholder="Jaise: Sales team ko de diya, weekly follow-up...">${esc(t.managing||'')}</textarea></div>
+      <div class="modal-actions">
+        <button class="btn gray" onclick="closeModal()">Band</button>
+        <button class="btn" onclick="saveStratProgress('${id}')">Save</button>
+      </div>
+    </div>
+  </div>`;
+}
+function setProg(v){
+  document.getElementById('progSlider').value=v;
+  document.getElementById('progVal').textContent=v+'%';
+}
+async function saveStratProgress(id){
+  const prog=parseInt(document.getElementById('progSlider').value)||0;
+  await sb.from('plan_strategy_tactics').update({
+    progress:prog,
+    challenge:document.getElementById('progChal').value||null,
+    solution:document.getElementById('progSol').value||null,
+    managing:document.getElementById('progMng').value||null,
+    done:prog>=100
+  }).eq('id',id);
+  closeModal();toast('Progress saved ✓');loadStrategy();
 }
 
 // ====== FOLLOW-UP SCHEDULER (task lifecycle) ======
