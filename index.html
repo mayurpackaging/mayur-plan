@@ -213,6 +213,58 @@
   .prog-quick button{flex:1;padding:6px;border:1px solid #d9d0f5;background:#f6f4fd;color:#7c3aed;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer}
   .prog-quick button:active{background:#7c3aed;color:#fff}
   .ai-sol-btn{margin-top:6px;width:100%;font-size:12px}
+  /* strategy summary modal */
+  .sum-modal{max-height:88vh;overflow-y:auto;max-width:560px}
+  .sum-head{border-bottom:2px solid #ede9fe;padding-bottom:10px;margin-bottom:12px}
+  .sum-sub{font-size:12px;color:var(--muted);margin-top:2px}
+  .sum-ai{background:#f6f4fd;border-radius:12px;padding:13px;margin-bottom:14px}
+  .sum-ai-h{font-size:14px;font-weight:800;color:#7c3aed;margin-bottom:8px}
+  .sum-ai-block{margin-bottom:9px}
+  .sum-ai-block b{font-size:12.5px;color:var(--navy);display:block;margin-bottom:2px}
+  .sum-ai-block p{font-size:13px;line-height:1.5;color:#333;margin:0}
+  .sum-good b{color:#157347}.sum-warn b{color:#b42318}.sum-next b{color:#7c3aed}
+  .sum-sec{margin-bottom:16px}
+  .sum-sec-h{font-size:14px;font-weight:800;color:var(--navy);margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid #f1f5f9}
+  .sum-grid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px}
+  .sum-stat{background:#fff;border:1px solid #eef1f5;border-radius:10px;padding:9px 6px;text-align:center}
+  .sum-stat span{display:block;font-size:19px;font-weight:800;color:var(--navy)}
+  .sum-stat i{font-size:10px;color:var(--muted);font-style:normal}
+  .sum-goal{display:flex;align-items:center;gap:9px;margin-bottom:7px}
+  .sum-goal-t{font-size:12.5px;flex:0 0 130px;color:#333}
+  .sum-goal-bar{flex:1;height:7px;background:#eef1f5;border-radius:4px;overflow:hidden}
+  .sum-goal-bar i{display:block;height:100%;border-radius:4px}
+  .sum-goal-p{font-size:12px;font-weight:800;min-width:36px;text-align:right}
+  .sum-counts{font-size:12px;color:var(--muted);margin-top:9px}
+  .sum-chal{background:#fafbfc;border-left:3px solid #f5a623;border-radius:8px;padding:9px 11px;margin-bottom:8px}
+  .sum-chal-t{font-size:12.5px;font-weight:700;color:var(--navy);margin-bottom:4px}
+  .sum-chal-c{font-size:12px;color:#b42318;margin-bottom:3px;line-height:1.4}
+  .sum-chal-s{font-size:12px;color:#157347;line-height:1.4}
+  .sum-cust{font-size:13px;color:#333}
+  .sum-lapsed{font-size:12px;color:#b42318;margin-top:6px;line-height:1.4}
+  /* impact tracker */
+  .impact-tracker{background:linear-gradient(135deg,#065f46,#10b981);border-radius:16px;padding:15px 16px;margin-bottom:11px;color:#fff;box-shadow:0 6px 18px rgba(16,185,129,.25)}
+  .it-head{font-size:14px;font-weight:800;margin-bottom:11px}
+  .it-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px}
+  .it-card{background:rgba(255,255,255,.14);border-radius:11px;padding:11px 8px;text-align:center}
+  .it-val{font-size:20px;font-weight:800;line-height:1.1}
+  .it-val span{font-size:11px;font-weight:600;opacity:.85;margin-left:2px}
+  .it-lbl{font-size:10px;opacity:.85;margin-top:3px}
+  .it-margin{font-size:12px;margin-top:10px;opacity:.92}
+  .impact-empty{background:#f0fdf4;border:1px dashed #86efac;border-radius:12px;padding:12px 14px;margin-bottom:11px;font-size:12.5px;color:#166534;line-height:1.5}
+  /* impact box in modal */
+  .impact-box{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:12px;margin:10px 0}
+  .impact-h{font-size:13px;font-weight:800;color:#157347;margin-bottom:9px}
+  .impact-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+  .impact-f label{font-size:10.5px;color:#166534;display:block;margin-bottom:3px}
+  .impact-f input{width:100%;padding:7px;border:1px solid #bbf7d0;border-radius:8px;font-size:13px;box-sizing:border-box}
+  .impact-hint{font-size:10.5px;color:#4d7c5a;margin-top:8px;line-height:1.4}
+  /* summary impact */
+  .sum-impact{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:9px}
+  .sum-imp-c{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:9px 6px;text-align:center}
+  .sum-imp-c span{display:block;font-size:16px;font-weight:800;color:#157347}
+  .sum-imp-c i{font-size:9.5px;color:#4d7c5a;font-style:normal}
+  .sum-imp-list{margin-top:6px}
+  .sum-imp-row{font-size:11.5px;color:#333;padding:3px 0;line-height:1.4}
   /* tactic title row (above its week cells) */
   .tac-row{margin-bottom:9px;padding-bottom:9px;border-bottom:1px solid #f0f2f5}
   .tac-title{font-size:13px;display:flex;align-items:center;gap:5px;margin-bottom:5px;flex-wrap:wrap}
@@ -2565,6 +2617,57 @@ async function loadStrategy(){
     }
   }
 
+  // ===== BUSINESS IMPACT TRACKER =====
+  let impT=0,impP=0,impC=0;
+  if(scycA){
+    const {data:impTacs}=await sb.from('plan_strategy_tactics').select('impact_turnover,impact_profit,impact_customers').eq('cycle_id',scycA.id);
+    (impTacs||[]).forEach(t=>{
+      impT+=parseFloat(t.impact_turnover)||0;
+      impP+=parseFloat(t.impact_profit)||0;
+      impC+=parseInt(t.impact_customers)||0;
+    });
+  }
+  // 12-week (expansion) ka bhi jodo
+  try{
+    const {data:w12c}=await sb.from('plan_cycles').select('id').eq('owner_id',ME.id).eq('status','active').limit(1);
+    if(w12c&&w12c.length){
+      const {data:wg}=await sb.from('plan_wgoals').select('id').eq('cycle_id',w12c[0].id);
+      const gids=(wg||[]).map(g=>g.id);
+      if(gids.length){
+        const {data:wt}=await sb.from('plan_tactics').select('impact_turnover,impact_profit,impact_customers').in('wgoal_id',gids);
+        (wt||[]).forEach(t=>{
+          impT+=parseFloat(t.impact_turnover)||0;
+          impP+=parseFloat(t.impact_profit)||0;
+          impC+=parseInt(t.impact_customers)||0;
+        });
+      }
+    }
+  }catch(e){}
+
+  if(impT>0||impP>0||impC>0){
+    const margin=impT>0?Math.round(impP/impT*100):0;
+    html+=`<div class="impact-tracker">
+      <div class="it-head">💰 Business Impact — Ab Tak</div>
+      <div class="it-grid">
+        <div class="it-card it-turn">
+          <div class="it-val">₹${impT.toFixed(2)}<span>Cr</span></div>
+          <div class="it-lbl">Turnover Added</div>
+        </div>
+        <div class="it-card it-prof">
+          <div class="it-val">₹${impP.toFixed(2)}<span>Cr</span></div>
+          <div class="it-lbl">Profit Added</div>
+        </div>
+        <div class="it-card it-cust">
+          <div class="it-val">${impC}</div>
+          <div class="it-lbl">Customers Added</div>
+        </div>
+      </div>
+      ${impT>0?`<div class="it-margin">Margin on new business: <b>${margin}%</b></div>`:''}
+    </div>`;
+  }else{
+    html+=`<div class="impact-empty">💰 <b>Business Impact</b> — abhi koi number nahi. Kisi tactic pe 📊 dabao aur "Business Impact" me turnover/profit daalo.</div>`;
+  }
+
   // DASHBOARD
   html+=`<div class="hsec">📊 Growth Dashboard</div>`;
   html+=`<div class="strat-meters">
@@ -2696,7 +2799,266 @@ async function loadStrategy(){
 }
 
 async function downloadStratSummary(){
-  toast('Strategy summary — jaldi aa raha');
+  const root=document.getElementById('modalRoot');
+  root.innerHTML=`<div class="modal-bg" onclick="if(event.target===this)closeModal()">
+    <div class="modal">
+      <h3>📄 Strategy Summary</h3>
+      <p style="font-size:13px;color:var(--muted)">AI aapka poora cycle data padh ke summary banayega — progress, wins, gaps, aur agla focus.</p>
+      <div class="field"><label>Language</label>
+        <select id="sumLang">
+          <option value="hi">Hinglish</option>
+          <option value="en">English (professional)</option>
+        </select></div>
+      <div class="modal-actions">
+        <button class="btn gray" onclick="closeModal()">Band</button>
+        <button class="btn" onclick="genStratSummary()">Summary banao</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+async function genStratSummary(){
+  const lang=document.getElementById('sumLang').value;
+  const root=document.getElementById('modalRoot');
+  root.innerHTML=`<div class="modal-bg"><div class="modal"><h3>📄 Summary ban rahi hai...</h3>
+    <p style="font-size:13px;color:var(--muted)">AI data padh raha hai, thoda ruko...</p></div></div>`;
+
+  // gather data
+  const {data:sc}=await sb.from('plan_strategy_cycles').select('*').eq('owner_id',ME.id).eq('status','active').limit(1);
+  if(!sc||!sc.length){closeModal();toast('Koi active cycle nahi');return}
+  const cyc=sc[0];
+  const sw=weekOfCycle(cyc.start_date);
+  const {data:tacs}=await sb.from('plan_strategy_tactics').select('*').eq('cycle_id',cyc.id).order('focus_week');
+  const T=tacs||[];
+  const {data:custs}=await sb.from('plan_customers').select('*').eq('owner_id',ME.id).order('share_pct',{ascending:false});
+  const C=custs||[];
+  let metrics={};
+  try{const {data:m}=await sb.from('plan_strategy_metrics').select('*').eq('owner_id',ME.id).order('updated_at',{ascending:false}).limit(1);if(m&&m.length)metrics=m[0];}catch(e){}
+
+  // compute
+  const pv=t=>t.done?100:(t.progress||0);
+  const due=T.filter(t=>t.focus_week<=sw);
+  const progPct=due.length?Math.round(due.reduce((s,t)=>s+pv(t),0)/due.length):0;
+  const totalPct=T.length?Math.round(T.reduce((s,t)=>s+pv(t),0)/T.length):0;
+  const doneT=T.filter(t=>t.done);
+  const inProg=T.filter(t=>!t.done&&(t.progress||0)>0);
+  const notStarted=T.filter(t=>!t.done&&!(t.progress||0));
+  // goal-wise
+  const areas={};
+  T.forEach(t=>{const a=t.goal_area||'Other';if(!areas[a])areas[a]={t:0,s:0,due:0};areas[a].t++;if(t.focus_week<=sw){areas[a].due++;areas[a].s+=pv(t);}});
+  const areaRows=Object.entries(areas).map(([a,v])=>({area:a,pct:v.due?Math.round(v.s/v.due):0,total:v.t}));
+  const brands=C.filter(c=>c.ctype==='Brand');
+  const brandRev=brands.reduce((s,c)=>s+(parseFloat(c.share_pct)||0),0);
+  const today=todayStr();
+  const lapsed=C.filter(c=>{if(!c.last_order_date)return false;const g=Math.floor((new Date(today)-new Date(c.last_order_date))/(864e5));return g>=90;});
+  const challenges=T.filter(t=>t.challenge&&t.challenge.trim());
+  // business impact totals
+  let sImpT=0,sImpP=0,sImpC=0;
+  T.forEach(t=>{sImpT+=parseFloat(t.impact_turnover)||0;sImpP+=parseFloat(t.impact_profit)||0;sImpC+=parseInt(t.impact_customers)||0;});
+  const impactTacs=T.filter(t=>(parseFloat(t.impact_turnover)||0)>0||(parseFloat(t.impact_profit)||0)>0||(parseInt(t.impact_customers)||0)>0);
+
+  // build AI prompt data
+  let dataStr=`Cycle: ${cyc.title}\nWeek ${sw} of 12\nOverall progress: ${progPct}% (due tasks), ${totalPct}% (all tasks)\n`;
+  dataStr+=`Tactics: ${doneT.length} complete, ${inProg.length} in progress, ${notStarted.length} not started (total ${T.length})\n\n`;
+  if(sImpT>0||sImpP>0||sImpC>0){
+    dataStr+=`BUSINESS IMPACT SO FAR: Turnover added ₹${sImpT.toFixed(2)} Cr, Profit added ₹${sImpP.toFixed(2)} Cr, Customers added ${sImpC}\n\n`;
+  }
+  dataStr+=`GOAL-WISE PROGRESS:\n`+areaRows.map(a=>`${a.area}: ${a.pct}%`).join('\n')+`\n\n`;
+  dataStr+=`METRICS: Premium mix ${metrics.premium_mix||15}% (target 30%), Avg margin ${metrics.avg_margin||17}% (target 22%), Brands ${brands.length} (target 25), Brand revenue ${brandRev.toFixed(1)}%\n\n`;
+  if(challenges.length){dataStr+=`CHALLENGES FACED:\n`+challenges.map(t=>`- ${t.title}: ${t.challenge}${t.solution?' → Solution: '+t.solution:''}`).join('\n')+`\n\n`;}
+  if(lapsed.length)dataStr+=`LAPSED CUSTOMERS (90+ days no order): ${lapsed.map(c=>c.name).join(', ')}\n`;
+
+  // call AI
+  let ai={};
+  try{
+    const r=await fetch('/api/ai-steps',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({idea:dataStr,mode:'strategy_summary',lang})});
+    ai=await r.json();
+  }catch(e){ai={overview:'AI summary nahi mil payi. Data neeche hai.'};}
+
+  // render summary
+  const EN=lang==='en';
+  const L={
+    title:EN?'Strategy Summary':'Strategy Summary',
+    week:EN?'Week':'Week', of:EN?'of':'of',
+    exec:EN?'Executive Summary':'Executive Summary',
+    overview:EN?'Overview':'Overview', wins:EN?'What Went Well':'Kya Achha Hua',
+    gaps:EN?'Gaps & Risks':'Kaha Peeche Hain', next:EN?'Next Focus':'Agla Focus',
+    dash:EN?'Growth Dashboard':'Growth Dashboard',
+    prog:EN?'Progress by Goal':'Goal-wise Progress',
+    done:EN?'Completed':'Complete Hua', inp:EN?'In Progress':'Chal Raha', ns:EN?'Not Started':'Shuru Nahi',
+    chal:EN?'Challenges & Solutions':'Challenges & Solutions',
+    cust:EN?'Customer Insights':'Customer Insights',
+    brands:EN?'Brands':'Brands', lapsedT:EN?'Lapsed (90+ days)':'Lapsed (90+ din)',
+    dl:EN?'Download Word':'Word Download', close:EN?'Close':'Band'
+  };
+
+  let h=`<div class="modal-bg" onclick="if(event.target===this)closeModal()">
+    <div class="modal sum-modal">
+      <div class="sum-head">
+        <h3>📄 ${L.title}</h3>
+        <div class="sum-sub">${esc(cyc.title)} · ${L.week} ${sw} ${L.of} 12</div>
+      </div>`;
+
+  // AI exec summary
+  if(ai.overview){
+    h+=`<div class="sum-ai">
+      <div class="sum-ai-h">🧠 ${L.exec}</div>
+      <div class="sum-ai-block"><b>${L.overview}</b><p>${esc(ai.overview)}</p></div>
+      ${ai.wins?`<div class="sum-ai-block sum-good"><b>✅ ${L.wins}</b><p>${esc(ai.wins)}</p></div>`:''}
+      ${ai.gaps?`<div class="sum-ai-block sum-warn"><b>⚠️ ${L.gaps}</b><p>${esc(ai.gaps)}</p></div>`:''}
+      ${ai.next?`<div class="sum-ai-block sum-next"><b>🎯 ${L.next}</b><p>${esc(ai.next)}</p></div>`:''}
+    </div>`;
+  }
+
+  // business impact (sabse upar, dashboard se pehle)
+  if(sImpT>0||sImpP>0||sImpC>0){
+    h+=`<div class="sum-sec"><div class="sum-sec-h">💰 ${EN?'Business Impact':'Business Impact'}</div>
+      <div class="sum-impact">
+        <div class="sum-imp-c"><span>₹${sImpT.toFixed(2)} Cr</span><i>${EN?'Turnover Added':'Turnover Added'}</i></div>
+        <div class="sum-imp-c"><span>₹${sImpP.toFixed(2)} Cr</span><i>${EN?'Profit Added':'Profit Added'}</i></div>
+        <div class="sum-imp-c"><span>${sImpC}</span><i>${EN?'Customers Added':'Customers Added'}</i></div>
+      </div>`;
+    if(impactTacs.length){
+      h+=`<div class="sum-imp-list">`;
+      impactTacs.forEach(t=>{
+        const bits=[];
+        if(parseFloat(t.impact_turnover)>0)bits.push(`+₹${parseFloat(t.impact_turnover).toFixed(2)} Cr turnover`);
+        if(parseFloat(t.impact_profit)>0)bits.push(`+₹${parseFloat(t.impact_profit).toFixed(2)} Cr profit`);
+        if(parseInt(t.impact_customers)>0)bits.push(`+${t.impact_customers} customers`);
+        h+=`<div class="sum-imp-row"><b>${esc(t.title)}</b> — ${bits.join(' · ')}</div>`;
+      });
+      h+=`</div>`;
+    }
+    h+=`</div>`;
+  }
+
+  // dashboard
+  h+=`<div class="sum-sec"><div class="sum-sec-h">📊 ${L.dash}</div>
+    <div class="sum-grid">
+      <div class="sum-stat"><span>${progPct}%</span><i>Progress</i></div>
+      <div class="sum-stat"><span>${metrics.premium_mix||15}%</span><i>Premium Mix</i></div>
+      <div class="sum-stat"><span>${metrics.avg_margin||17}%</span><i>Avg Margin</i></div>
+      <div class="sum-stat"><span>${brands.length}</span><i>${L.brands}</i></div>
+    </div></div>`;
+
+  // goal-wise
+  h+=`<div class="sum-sec"><div class="sum-sec-h">🎯 ${L.prog}</div>`;
+  areaRows.forEach(a=>{
+    const c=a.pct>=85?'#10b981':a.pct>=50?'#f5a623':'#e11d48';
+    h+=`<div class="sum-goal"><div class="sum-goal-t">${esc(a.area)}</div>
+      <div class="sum-goal-bar"><i style="width:${a.pct}%;background:${c}"></i></div>
+      <div class="sum-goal-p" style="color:${c}">${a.pct}%</div></div>`;
+  });
+  h+=`<div class="sum-counts">✅ ${doneT.length} ${L.done} · 🔄 ${inProg.length} ${L.inp} · ⚪ ${notStarted.length} ${L.ns}</div></div>`;
+
+  // challenges
+  if(challenges.length){
+    h+=`<div class="sum-sec"><div class="sum-sec-h">⚠️ ${L.chal}</div>`;
+    challenges.forEach(t=>{
+      h+=`<div class="sum-chal">
+        <div class="sum-chal-t">${esc(t.title)}</div>
+        <div class="sum-chal-c">⚠️ ${esc(t.challenge)}</div>
+        ${t.solution?`<div class="sum-chal-s">✅ ${esc(t.solution)}</div>`:''}
+      </div>`;
+    });
+    h+=`</div>`;
+  }
+
+  // customers
+  if(C.length){
+    h+=`<div class="sum-sec"><div class="sum-sec-h">👥 ${L.cust}</div>
+      <div class="sum-cust">${L.brands}: <b>${brands.length}</b> (${brandRev.toFixed(1)}% revenue) · A-customers: <b>${C.filter(c=>c.abc==='A').length}</b></div>`;
+    if(lapsed.length)h+=`<div class="sum-lapsed">🔴 ${L.lapsedT}: ${lapsed.map(c=>esc(c.name)).join(', ')}</div>`;
+    h+=`</div>`;
+  }
+
+  h+=`<div class="modal-actions">
+    <button class="btn gray" onclick="closeModal()">${L.close}</button>
+    <button class="btn" onclick="dlStratSummaryDoc()">📥 ${L.dl}</button>
+  </div></div></div>`;
+  root.innerHTML=h;
+
+  // stash for download
+  window.__stratSum={cyc,sw,progPct,totalPct,doneT,inProg,notStarted,areaRows,metrics,brands,brandRev,lapsed,challenges,C,ai,lang,L,sImpT,sImpP,sImpC,impactTacs};
+}
+
+async function dlStratSummaryDoc(){
+  const S=window.__stratSum;if(!S){toast('Data nahi mila');return}
+  // library load wait
+  if(typeof docx==='undefined'){
+    toast('Summary taiyaar ho rahi, ek pal...');
+    let waited=0;
+    while(typeof docx==='undefined' && waited<8000){await new Promise(r=>setTimeout(r,400));waited+=400;}
+    if(typeof docx==='undefined'){toast('Net slow hai — refresh karke try karo');return;}
+  }
+  toast('Word file ban rahi hai...');
+  const {Document,Packer,Paragraph,TextRun,AlignmentType}=docx;
+  const NAVY="1F4E79",PURP="7C3AED",GREEN="157347",RED="B42318",MUTE="6B7686",CARD="F6F4FD";
+  const tx=(t,o={})=>new TextRun({text:String(t),bold:o.b||false,color:o.c||"2A2A2A",size:o.s||20,italics:o.i||false});
+  const K=[];
+  const L=S.L;
+  K.push(new Paragraph({alignment:AlignmentType.CENTER,spacing:{after:30},children:[tx("SHREEJA PACKAGING",{b:true,s:30,c:NAVY})]}));
+  K.push(new Paragraph({alignment:AlignmentType.CENTER,spacing:{after:30},children:[tx(L.title,{b:true,s:24,c:PURP})]}));
+  K.push(new Paragraph({alignment:AlignmentType.CENTER,spacing:{after:180},children:[tx(`${S.cyc.title} · ${L.week} ${S.sw} ${L.of} 12`,{s:16,c:MUTE,i:true})]}));
+
+  if(S.ai.overview){
+    K.push(new Paragraph({spacing:{before:80,after:60},children:[tx("🧠 "+L.exec,{b:true,s:22,c:PURP})]}));
+    [[L.overview,S.ai.overview,"2A2A2A"],["✅ "+L.wins,S.ai.wins,GREEN],["⚠️ "+L.gaps,S.ai.gaps,RED],["🎯 "+L.next,S.ai.next,PURP]].forEach(([lbl,val,col])=>{
+      if(!val)return;
+      K.push(new Paragraph({spacing:{before:60,after:20},children:[tx(lbl,{b:true,s:19,c:col})]}));
+      K.push(new Paragraph({spacing:{after:40},indent:{left:200},children:[tx(val,{s:19})]}));
+    });
+  }
+
+  K.push(new Paragraph({spacing:{before:180,after:60},children:[tx("📊 "+L.dash,{b:true,s:22,c:NAVY})]}));
+  K.push(new Paragraph({spacing:{after:40},children:[tx(`Progress: ${S.progPct}%  ·  Premium Mix: ${S.metrics.premium_mix||15}%  ·  Avg Margin: ${S.metrics.avg_margin||17}%  ·  ${L.brands}: ${S.brands.length}`,{s:19})]}));
+
+  if(S.sImpT>0||S.sImpP>0||S.sImpC>0){
+    K.push(new Paragraph({spacing:{before:180,after:60},children:[tx("💰 Business Impact",{b:true,s:22,c:"157347"})]}));
+    K.push(new Paragraph({spacing:{after:40},children:[
+      tx(`Turnover Added: ₹${S.sImpT.toFixed(2)} Cr   ·   `,{b:true,s:19,c:GREEN}),
+      tx(`Profit Added: ₹${S.sImpP.toFixed(2)} Cr   ·   `,{b:true,s:19,c:GREEN}),
+      tx(`Customers Added: ${S.sImpC}`,{b:true,s:19,c:GREEN})]}));
+    if(S.impactTacs&&S.impactTacs.length){
+      S.impactTacs.forEach(t=>{
+        const bits=[];
+        if(parseFloat(t.impact_turnover)>0)bits.push(`+₹${parseFloat(t.impact_turnover).toFixed(2)} Cr turnover`);
+        if(parseFloat(t.impact_profit)>0)bits.push(`+₹${parseFloat(t.impact_profit).toFixed(2)} Cr profit`);
+        if(parseInt(t.impact_customers)>0)bits.push(`+${t.impact_customers} customers`);
+        K.push(new Paragraph({spacing:{after:20},indent:{left:200},children:[tx("• "+t.title+" — ",{b:true,s:18}),tx(bits.join(' · '),{s:18,c:GREEN})]}));
+      });
+    }
+  }
+
+  K.push(new Paragraph({spacing:{before:160,after:60},children:[tx("🎯 "+L.prog,{b:true,s:22,c:NAVY})]}));
+  S.areaRows.forEach(a=>{
+    K.push(new Paragraph({spacing:{after:20},children:[tx(a.area+" — ",{s:19}),tx(a.pct+"%",{b:true,s:19,c:a.pct>=85?GREEN:a.pct>=50?"9A6700":RED})]}));
+  });
+  K.push(new Paragraph({spacing:{before:40,after:40},children:[tx(`✅ ${S.doneT.length} ${L.done}  ·  🔄 ${S.inProg.length} ${L.inp}  ·  ⚪ ${S.notStarted.length} ${L.ns}`,{s:18,c:MUTE})]}));
+
+  if(S.challenges.length){
+    K.push(new Paragraph({spacing:{before:180,after:60},children:[tx("⚠️ "+L.chal,{b:true,s:22,c:NAVY})]}));
+    S.challenges.forEach(t=>{
+      K.push(new Paragraph({spacing:{before:70,after:15},children:[tx(t.title,{b:true,s:19,c:NAVY})]}));
+      K.push(new Paragraph({spacing:{after:15},indent:{left:200},children:[tx("⚠️ Challenge: ",{b:true,s:18,c:RED}),tx(t.challenge,{s:18})]}));
+      if(t.solution)K.push(new Paragraph({spacing:{after:20},indent:{left:200},children:[tx("✅ Solution: ",{b:true,s:18,c:GREEN}),tx(t.solution,{s:18})]}));
+    });
+  }
+
+  if(S.C.length){
+    K.push(new Paragraph({spacing:{before:180,after:60},children:[tx("👥 "+L.cust,{b:true,s:22,c:NAVY})]}));
+    K.push(new Paragraph({spacing:{after:30},children:[tx(`${L.brands}: ${S.brands.length} (${S.brandRev.toFixed(1)}% revenue) · A-customers: ${S.C.filter(c=>c.abc==='A').length}`,{s:19})]}));
+    if(S.lapsed.length)K.push(new Paragraph({spacing:{after:30},children:[tx("🔴 "+L.lapsedT+": ",{b:true,s:18,c:RED}),tx(S.lapsed.map(c=>c.name).join(', '),{s:18})]}));
+  }
+
+  const doc=new Document({styles:{default:{document:{run:{font:"Arial",size:20}}}},sections:[{properties:{},children:K}]});
+  const blob=await Packer.toBlob(doc);
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;
+  a.download=`Strategy_Summary_Week${S.sw}.docx`;a.click();
+  URL.revokeObjectURL(url);
+  toast('Download ho gaya ✓');
 }
 
 function meterCard(label,now,target,color,key){
@@ -2908,6 +3270,20 @@ async function openProgressModal(id,table,reload){
         <textarea id="progSol" placeholder="Jaise: value samjhaayi, sample bheja...">${esc(t.solution||'')}</textarea></div>
       <div class="field"><label>🔧 How I'm managing — main isko kaise kar raha hu</label>
         <textarea id="progMng" placeholder="Jaise: Sales team ko de diya, weekly follow-up...">${esc(t.managing||'')}</textarea></div>
+
+      <div class="impact-box">
+        <div class="impact-h">💰 Business Impact — is kaam se kya mila?</div>
+        <div class="impact-grid">
+          <div class="impact-f"><label>Turnover (₹ Cr)</label>
+            <input id="impTurn" type="number" step="0.01" placeholder="0.00" value="${t.impact_turnover||''}"></div>
+          <div class="impact-f"><label>Profit (₹ Cr)</label>
+            <input id="impProf" type="number" step="0.01" placeholder="0.00" value="${t.impact_profit||''}"></div>
+          <div class="impact-f"><label>Customers added</label>
+            <input id="impCust" type="number" step="1" placeholder="0" value="${t.impact_customers||''}"></div>
+        </div>
+        <div class="impact-hint">Jab kaam se asli fayda ho — jaise premium shift se turnover badha — yahan number daalo. Ye summary aur report me aayega.</div>
+      </div>
+
       <div class="modal-actions">
         <button class="btn gray" onclick="closeModal()">Band</button>
         <button class="btn" onclick="saveProgressModal('${id}','${table}','${reload}')">Save</button>
@@ -2945,7 +3321,10 @@ async function saveProgressModal(id,table,reload){
     progress:prog,
     challenge:document.getElementById('progChal').value||null,
     solution:document.getElementById('progSol').value||null,
-    managing:document.getElementById('progMng').value||null
+    managing:document.getElementById('progMng').value||null,
+    impact_turnover:parseFloat(document.getElementById('impTurn').value)||0,
+    impact_profit:parseFloat(document.getElementById('impProf').value)||0,
+    impact_customers:parseInt(document.getElementById('impCust').value)||0
   };
   if(table==='plan_strategy_tactics')upd.done=prog>=100;
   await sb.from(table).update(upd).eq('id',id);
